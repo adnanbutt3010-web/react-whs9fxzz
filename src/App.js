@@ -1,658 +1,834 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
-const initialSites = [
-  {
-    id: "site_1",
-    name: "My Online Store",
-    url: "https://mystore.com",
-    enabled: true,
-    numbers: ["+92 300 1234567", "+92 321 9876543"],
-    secretKey: "sk_live_abc123",
-    installedAt: "2026-04-10T08:00:00Z",
-    lastActive: "2026-05-17T14:32:00Z",
-  },
-  {
-    id: "site_2",
-    name: "Fashion Hub",
-    url: "https://fashionhub.pk",
-    enabled: false,
-    numbers: ["+92 333 5556677"],
-    secretKey: "",
-    installedAt: "2026-03-22T10:00:00Z",
-    lastActive: "2026-04-30T09:10:00Z",
-  },
-];
+const SUPABASE_URL = "https://wuiblzjwolncpafjmkch.supabase.co";
+const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
+const ADMIN_USER = "admin";
+const ADMIN_PASS_KEY = "wbm_pass";
+const DEFAULT_PASS = "wbm@2026";
+const SESSION_KEY = "wbm_v11_session";
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
-function generateId() {
-  return "site_" + Math.random().toString(36).substr(2, 9);
+// ─── SUPABASE ─────────────────────────────────────────────
+const sb = {
+  async query(method, path, body) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        method,
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation",
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const text = await res.text();
+      return text ? JSON.parse(text) : [];
+    } catch (e) { console.error(e); return null; }
+  },
+  getSites: () => sb.query("GET", "sites?select=*&order=installed_at.desc", null),
+  upsertSite: (site) => sb.query("POST", "sites?on_conflict=id", {
+    id: site.id, name: site.name, url: site.url,
+    enabled: site.enabled, payment: site.payment,
+    numbers: site.numbers, secret_key: site.secretKey || "",
+    installed_at: site.installedAt, last_active: site.lastActive,
+    clicks: site.clicks || 0, impressions: site.impressions || 0,
+    verified: site.verified || false, plan: site.plan || "basic",
+  }),
+  updateSite: (id, data) => sb.query("PATCH", `sites?id=eq.${id}`, data),
+  deleteSite: (id) => sb.query("DELETE", `sites?id=eq.${id}`, null),
+};
+
+// ─── HELPERS ──────────────────────────────────────────────
+function genId() { return "s_" + Math.random().toString(36).substr(2, 8); }
+function fmtDate(iso) { if (!iso) return "—"; return new Date(iso).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" }); }
+function timeAgo(iso) { if (!iso) return "—"; const d = Math.floor((Date.now() - new Date(iso)) / 86400000); if (d === 0) return "Today"; if (d === 1) return "Yesterday"; if (d < 30) return `${d}d ago`; return `${Math.floor(d / 30)}mo ago`; }
+function mapRow(r) {
+  return {
+    id: r.id, name: r.name, url: r.url,
+    enabled: r.enabled, payment: r.payment,
+    numbers: r.numbers || [], secretKey: r.secret_key || "",
+    installedAt: r.installed_at, lastActive: r.last_active,
+    clicks: r.clicks || 0, impressions: r.impressions || 0,
+    verified: r.verified || false, plan: r.plan || "basic",
+  };
 }
 
-function generateScript(site) {
+// ─── SESSION ──────────────────────────────────────────────
+function getSession() {
+  try {
+    const s = localStorage.getItem(SESSION_KEY);
+    if (!s) return null;
+    const p = JSON.parse(s);
+    if (Date.now() - p.time > SESSION_TIMEOUT) { localStorage.removeItem(SESSION_KEY); return null; }
+    return p;
+  } catch (e) { return null; }
+}
+function setSession() { localStorage.setItem(SESSION_KEY, JSON.stringify({ time: Date.now() })); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+// ─── SCRIPT GENERATOR ─────────────────────────────────────
+function genScript(site) {
+  if (!site.enabled || site.payment !== "paid") {
+    return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){\n  var el=document.getElementById("wbm-fab");\n  if(el)el.remove();\n})();\n<\/script>`;
+  }
+
   const nums = JSON.stringify(site.numbers);
   const secret = site.secretKey ? `"${site.secretKey}"` : "null";
-  return `<!-- WhatsApp Button Manager | ${site.name} -->
+  const isBasic = site.plan === "basic";
+
+  return `<!-- WBManager | ${site.name} | ${isBasic ? "BASIC" : "PRO"} Plan | v11 -->
 <script>
 (function(){
-  var WBM = {
-    siteId: "${site.id}",
-    numbers: ${nums},
-    secretKey: ${secret},
-    siteUrl: "${site.url}",
-    init: function() {
-      var self = this;
-      var style = document.createElement("style");
-      style.textContent = [
-        ".wbm-btn{display:inline-flex;align-items:center;gap:6px;background:#25D366;",
-        "color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;",
-        "font-weight:600;cursor:pointer;margin-top:8px;text-decoration:none;",
-        "box-shadow:0 2px 8px rgba(37,211,102,.35);transition:all .2s;}",
-        ".wbm-btn:hover{background:#1ebe5c;transform:translateY(-1px);}"
-      ].join("");
-      document.head.appendChild(style);
-      self.scan();
-      var obs = new MutationObserver(function(){ self.scan(); });
-      obs.observe(document.body, {childList:true, subtree:true});
-    },
-    scan: function() {
-      var selectors = [
-        ".product", ".product-card", ".product-item",
-        "[data-product]", ".shop-item", ".woocommerce-loop-product__link",
-        "article.post", ".elementor-product-loop-item"
-      ];
-      var cards = document.querySelectorAll(selectors.join(","));
-      cards.forEach(function(card) {
-        if (card.querySelector(".wbm-btn")) return;
-        var title = (card.querySelector("h1,h2,h3,h4,.product-title,.entry-title") || {}).innerText || document.title;
-        var price = (card.querySelector(".price,.product-price,.amount,[data-price]") || {}).innerText || "";
-        var img = (card.querySelector("img") || {}).src || "";
-        var link = (card.querySelector("a") || {}).href || window.location.href;
-        var number = self.numbers[Math.floor(Math.random() * self.numbers.length)];
-        var msg = "Hello! I want to order:\\n" +
-          "*Product:* " + title + "\\n" +
-          (price ? "*Price:* " + price + "\\n" : "") +
-          (img ? "*Image:* " + img + "\\n" : "") +
-          "*Link:* " + link +
-          (self.secretKey ? "\\n*Ref:* " + self.secretKey : "");
-        var btn = document.createElement("a");
-        btn.className = "wbm-btn";
-        btn.href = "https://wa.me/" + number.replace(/[^0-9]/g,"") + "?text=" + encodeURIComponent(msg);
-        btn.target = "_blank";
-        btn.rel = "noopener";
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.533 5.853L0 24l6.305-1.508A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.371l-.36-.214-3.732.893.924-3.638-.234-.374A9.818 9.818 0 1112 21.818z"/></svg> Order on WhatsApp';
-        card.appendChild(btn);
-      });
-    }
+  var CFG={
+    siteId:"${site.id}",
+    numbers:${nums},
+    key:${secret},
+    siteUrl:"${site.url}",
+    plan:"${site.plan || "basic"}",
+    supabaseUrl:"${SUPABASE_URL}",
+    supabaseKey:"${SUPABASE_KEY}"
   };
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function(){ WBM.init(); });
-  } else { WBM.init(); }
+
+  // Check status from Supabase
+  function checkStatus(cb){
+    fetch(CFG.supabaseUrl+"/rest/v1/sites?id=eq."+CFG.siteId+"&select=enabled,payment,plan",{
+      headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}
+    }).then(r=>r.json()).then(data=>{
+      if(data&&data[0]){
+        cb(data[0].enabled===true&&data[0].payment==="paid", data[0].plan||"basic");
+      } else cb(false,"basic");
+    }).catch(()=>cb(true, CFG.plan));
+  }
+
+  var WA_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.533 5.853L0 24l6.305-1.508A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.371l-.36-.214-3.732.893.924-3.638-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>';
+
+  var st=document.createElement("style");
+  st.textContent=
+    "#wbm-fab{position:fixed;bottom:24px;right:24px;z-index:2147483647;}"+
+    "#wbm-fab a{display:flex;align-items:center;justify-content:center;"+
+    "width:60px;height:60px;background:#25D366;border-radius:50%;"+
+    "text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.55);"+
+    "transition:transform .25s;animation:wbm-glow 2.5s ease-in-out infinite;}"+
+    "#wbm-fab a:hover{transform:scale(1.12);}"+
+    "@keyframes wbm-glow{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.55);}50%{box-shadow:0 4px 36px rgba(37,211,102,.9);}}";
+  document.head.appendChild(st);
+
+  function pickNum(){return CFG.numbers[Math.floor(Math.random()*CFG.numbers.length)];}
+  function waLink(msg){return "https://wa.me/"+pickNum().replace(/\\D/g,"")+"?text="+encodeURIComponent(msg);}
+
+  // ── BASIC PLAN: Sirf inquiry message ─────────────────────
+  function buildBasicMsg(){
+    var link=(document.querySelector('link[rel="canonical"]')||{}).href||location.href;
+    return "Assalam-o-Alaikum!\\n\\nI am interested in your products.\\n\\nStore: "+CFG.siteUrl;
+  }
+
+  // ── PRO PLAN: Full product details ──────────────────────
+  function isSinglePage(){
+    var cards=document.querySelectorAll(".post-outer,.hentry,li.product,.product-card");
+    if(cards.length>1)return false;
+    var canonical=(document.querySelector('link[rel="canonical"]')||{}).href||"";
+    var isHome=(canonical===CFG.siteUrl||canonical===CFG.siteUrl+"/"||location.pathname==="/"||location.pathname==="");
+    return !isHome;
+  }
+
+  function getPrice(){
+    var meta=document.querySelector('[property="product:price:amount"],[itemprop="price"]');
+    if(meta){var cur=document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"]');return ((cur?cur.content||cur.innerText:"")||"")+" "+(meta.content||meta.innerText||"").replace(/[^0-9.,]/g,"");}
+    var body=document.body.innerText||"";
+    var pats=[/Price[:\\s]+PKR[\\s]?([\\d,]+)/i,/PKR[\\s]?([\\d,]+)/i,/Rs\\.?[\\s]?([\\d,]+)/i,/\\$\\s?([\\d,]+\\.?\\d{0,2})/,/£\\s?([\\d,]+\\.?\\d{0,2})/,/€\\s?([\\d,]+[.,]?\\d{0,2})/,/₹\\s?([\\d,]+)/,/AED[\\s]?([\\d,]+)/i,/SAR[\\s]?([\\d,]+)/i,/KWD[\\s]?([\\d,]+\\.?\\d{0,3})/i,/QAR[\\s]?([\\d,]+)/i,/OMR[\\s]?([\\d,]+\\.?\\d{0,3})/i,/Price[:\\s]+([\\d,]+\\.?\\d{0,2})/i];
+    var syms=["PKR ","PKR ","Rs. ","$ ","£ ","€ ","₹ ","AED ","SAR ","KWD ","QAR ","OMR ",""];
+    for(var i=0;i<pats.length;i++){var m=body.match(pats[i]);if(m&&m[1])return (syms[i]||"")+m[1];}
+    return "";
+  }
+
+  function getImage(){
+    var og=document.querySelector('meta[property="og:image"]');
+    if(og&&og.content)return og.content.replace(/\\/w\\d+-h\\d+(-[^/]*)?(?=\\/|$)/,"");
+    var img=document.querySelector(".post-body img,.entry-content img,.product img,article img");
+    if(img)return (img.src||img.getAttribute("data-src")||"").replace(/\\/w\\d+-h\\d+(-[^/]*)?(?=\\/|$)/,"");
+    return "";
+  }
+
+  function getTitle(){
+    var el=document.querySelector("h1.post-title,h1.entry-title,h1.product_title,.post-title,.entry-title,h1");
+    return el?el.innerText.trim():document.title.split("|")[0].trim();
+  }
+
+  function getLink(){
+    var c=document.querySelector('link[rel="canonical"]');
+    return c?c.href:location.href.split("?")[0].split("#")[0];
+  }
+
+  function buildProMsg(){
+    if(!isSinglePage()) return "Assalam-o-Alaikum!\\n\\nI am visiting your store:\\n"+getLink();
+    var title=getTitle(),price=getPrice(),link=getLink();
+    var msg="Assalam-o-Alaikum, I want to order this product:\\n\\n";
+    msg+="*Product:* "+title+"\\n";
+    if(price)msg+="*Price:* "+price+"\\n";
+    if(CFG.key)msg+="*Secret ID:* "+CFG.key+"\\n";
+    msg+="*Link:* "+link;
+    return msg;
+  }
+
+  function addFAB(plan){
+    if(document.getElementById("wbm-fab"))return;
+    var msg=plan==="pro"?buildProMsg():buildBasicMsg();
+    var wrap=document.createElement("div");wrap.id="wbm-fab";
+    var a=document.createElement("a");
+    a.href=waLink(msg);a.target="_blank";a.rel="noopener noreferrer";
+    a.setAttribute("aria-label","Chat on WhatsApp");
+    a.innerHTML=WA_SVG;
+    wrap.appendChild(a);document.body.appendChild(wrap);
+  }
+
+  function removeFAB(){var el=document.getElementById("wbm-fab");if(el)el.remove();}
+
+  function init(){
+    checkStatus(function(active,plan){
+      if(active)addFAB(plan); else removeFAB();
+    });
+    setInterval(function(){
+      checkStatus(function(active,plan){
+        removeFAB();
+        if(active)addFAB(plan);
+      });
+    },5*60*1000);
+  }
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
+  else setTimeout(init,300);
 })();
-</script>`;
+<\/script>
+<!-- End WBManager v11 -->`;
 }
 
-function formatDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-PK", {
-    year: "numeric", month: "short", day: "numeric"
-  });
+function waReminderMsg(site) {
+  const n = site.numbers[0].replace(/\D/g, "");
+  const msg = `Assalam o Alaikum! 👋\n\n⚠️ *WhatsApp Button Service — Payment Pending*\n\nAapki website *${site.url}* ki service ki payment pending hai.\n\nKripya jald payment karein ta-k button dubara active ho sake.\n\nShukriya! 🙏\n— WBManager Team`;
+  return `https://wa.me/${n}?text=${encodeURIComponent(msg)}`;
 }
 
-function timeSince(iso) {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
+// ─── CSS ──────────────────────────────────────────────────
+const CSS = `
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f0f4f8;font-family:'DM Sans','Segoe UI',sans-serif;color:#1e293b;}
+::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:#e2e8f0;} ::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px;}
+.wbm-root{display:flex;min-height:100vh;}
+.sidebar{width:230px;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;transition:transform .25s;box-shadow:2px 0 12px rgba(0,0,0,.06);}
+.sidebar.hidden{transform:translateX(-230px);}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:199;}
+.sidebar-overlay.show{display:block;}
+.main-wrap{flex:1;display:flex;flex-direction:column;min-width:0;}
+.main-wrap.with-sidebar{margin-left:230px;}
+.topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 20px;height:62px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.page{padding:20px;max-width:1080px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+.stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:all .2s;}
+.stat-card:hover{box-shadow:0 4px 16px rgba(37,211,102,.15);border-color:#86efac;}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.card-title{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px;}
+.site-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;transition:all .2s;}
+.site-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.chip{background:#f1f5f9;color:#64748b;font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap;border:1px solid #e2e8f0;}
+.badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.badge-green{background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;}
+.badge-gray{background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0;}
+.badge-blue{background:#dbeafe;color:#2563eb;border:1px solid #bfdbfe;}
+.badge-amber{background:#fef9c3;color:#ca8a04;border:1px solid #fde68a;}
+.badge-ver{background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid #bbf7d0;}
+.badge-basic{background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.badge-pro{background:linear-gradient(135deg,#fef9c3,#fde68a);color:#92400e;border:1px solid #fbbf24;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.btn-p{background:linear-gradient(135deg,#25D366,#1aab52);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(37,211,102,.3);}
+.btn-g{background:#fff;color:#64748b;border:1px solid #e2e8f0;border-radius:9px;padding:10px 16px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;}
+.btn-a{border:1px solid #e2e8f0;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;background:#f8fafc;color:#475569;}
+.btn-pay{border-radius:8px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;}
+.btn-pay.paid{background:#dcfce7;color:#16a34a;border-color:#86efac;}
+.btn-pay.pend{background:#fef9c3;color:#ca8a04;border-color:#fde68a;}
+.btn-ver{background:#dbeafe;color:#2563eb;border:1px solid #bfdbfe;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;}
+.plan-btn{border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;transition:all .2s;}
+.plan-btn.basic-active{background:#f0f9ff;color:#0369a1;border-color:#bae6fd;}
+.plan-btn.pro-active{background:linear-gradient(135deg,#fef9c3,#fde68a);color:#92400e;border-color:#fbbf24;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.lbl{font-size:12px;font-weight:700;color:#64748b;}
+.inp{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:11px 13px;color:#1e293b;font-size:14px;outline:none;width:100%;}
+.inp:focus{border-color:#25D366;box-shadow:0 0 0 3px rgba(37,211,102,.1);}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:none;background:transparent;color:#64748b;cursor:pointer;font-size:14px;font-weight:500;width:100%;text-align:left;transition:all .15s;}
+.nav-btn:hover,.nav-btn.active{background:#dcfce7;color:#16a34a;font-weight:700;}
+.tab-btn{background:transparent;border:none;color:#94a3b8;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+.tab-btn.active{background:#f0fdf4;color:#16a34a;font-weight:700;}
+.alert-w{background:#fef9c3;border:1px solid #fde68a;color:#854d0e;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:14px;}
+.info-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px 16px;font-size:13px;color:#0369a1;margin-bottom:14px;line-height:1.7;}
+.success-box{background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 16px;font-size:13px;color:#166534;margin-bottom:14px;line-height:1.7;}
+.plan-box{border-radius:12px;padding:16px;margin-bottom:14px;}
+.plan-box.basic{background:#f0f9ff;border:2px solid #bae6fd;}
+.plan-box.pro{background:linear-gradient(135deg,#fffbeb,#fef9c3);border:2px solid #fbbf24;}
+.script-box{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;overflow:auto;font-size:11px;color:#7dd3fc;line-height:1.7;font-family:monospace;max-height:280px;white-space:pre-wrap;word-break:break-word;}
+.msg-preview{border-radius:10px;padding:14px 16px;font-size:12px;margin-bottom:10px;line-height:1.8;font-family:monospace;}
+.msg-preview.basic{background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;}
+.msg-preview.pro{background:#dcfce7;border:1px solid #86efac;color:#166534;}
+.modal-ov{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:30px 26px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0fdf4,#f0f9ff);padding:16px;}
+.login-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:40px 32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.1);}
+.toast{position:fixed;top:16px;right:16px;z-index:9999;padding:12px 20px;border-radius:11px;color:#fff;font-weight:700;font-size:13px;box-shadow:0 4px 24px rgba(0,0,0,.2);max-width:320px;}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.feat-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;display:flex;gap:10px;}
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:14px;}
+.spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#25D366;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toggle-btn{position:relative;width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.toggle-btn.on{background:#25D366;}
+.toggle-btn.off{background:#cbd5e1;}
+.toggle-btn::after{content:"";position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.toggle-btn.on::after{left:23px;}
+.toggle-btn.off::after{left:3px;}
+.live-badge{background:#dcfce7;color:#16a34a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid #86efac;margin-left:6px;}
+
+/* Plan comparison */
+.plan-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.plan-card{border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;border:2px solid transparent;}
+.plan-card.basic{background:#f0f9ff;border-color:#bae6fd;}
+.plan-card.pro{background:linear-gradient(135deg,#fffbeb,#fef9c3);border-color:#fbbf24;}
+.plan-card.selected.basic{border-color:#0369a1;box-shadow:0 0 0 3px rgba(3,105,161,.15);}
+.plan-card.selected.pro{border-color:#d97706;box-shadow:0 0 0 3px rgba(217,119,6,.15);}
+.plan-card-title{font-weight:800;font-size:14px;margin-bottom:4px;}
+.plan-card.basic .plan-card-title{color:#0369a1;}
+.plan-card.pro .plan-card-title{color:#92400e;}
+.plan-price{font-size:18px;font-weight:800;margin-bottom:8px;}
+.plan-card.basic .plan-price{color:#0369a1;}
+.plan-card.pro .plan-price{color:#d97706;}
+.plan-feature{font-size:11px;color:#64748b;margin-bottom:3px;}
+.plan-feature::before{content:"✓ ";color:#16a34a;font-weight:700;}
+.plan-feature.no::before{content:"✗ ";color:#94a3b8;}
+
+@media(min-width:900px){
+  .sidebar{transform:translateX(0)!important;}
+  .main-wrap{margin-left:230px!important;}
+  .sidebar-overlay{display:none!important;}
+  .menu-btn{display:none!important;}
+  .stats-grid{grid-template-columns:repeat(6,1fr);}
+}
+@media(max-width:899px){.stats-grid{grid-template-columns:repeat(3,1fr);}.form-grid{grid-template-columns:1fr;}.page{padding:14px;}.feat-grid{grid-template-columns:1fr;}.plan-compare{grid-template-columns:1fr;}}
+@media(max-width:500px){.stats-grid{grid-template-columns:repeat(2,1fr);}.page{padding:10px;}.card{padding:14px;}}
+`;
+
+function injectCSS() {
+  if (document.getElementById("wbm-css")) return;
+  const s = document.createElement("style"); s.id = "wbm-css"; s.textContent = CSS;
+  document.head.appendChild(s);
 }
 
-export default function App() {
-  const [sites, setSites] = useState(initialSites);
-  const [view, setView] = useState("dashboard"); // dashboard | add | edit | script
-  const [selected, setSelected] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [form, setForm] = useState({ name: "", url: "", secretKey: "", numbers: [""] });
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+// ─── LOGIN ─────────────────────────────────────────────────
+function Login({ onLogin }) {
+  const [mode, setMode] = useState("login");
+  const [u, setU] = useState(""); const [p, setP] = useState("");
+  const [rec, setRec] = useState("");
+  const [np, setNp] = useState(""); const [cp, setCp] = useState("");
+  const [err, setErr] = useState(""); const [show, setShow] = useState(false);
+  const savedPass = localStorage.getItem(ADMIN_PASS_KEY) || DEFAULT_PASS;
 
-  function showToast(msg, type = "success") {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 2800);
+  function doLogin() {
+    setErr("");
+    if (!u.trim() || !p.trim()) { setErr("Username aur password zaroor bharein!"); return; }
+    if (u.trim() === ADMIN_USER && p === savedPass) { setSession(); onLogin(); }
+    else setErr("Username ya password galat hai!");
   }
 
-  function openAdd() {
-    setForm({ name: "", url: "", secretKey: "", numbers: [""] });
-    setView("add");
+  function doRecover() {
+    setErr("");
+    if (rec.trim() === RECOVERY_CODE) setMode("newpass");
+    else setErr("Recovery code galat hai!");
   }
 
-  function openEdit(site) {
-    setSelected(site);
-    setForm({ name: site.name, url: site.url, secretKey: site.secretKey, numbers: [...site.numbers] });
-    setView("edit");
+  function doNewPass() {
+    setErr("");
+    if (np.length < 6) { setErr("Password kam az kam 6 characters!"); return; }
+    if (np !== cp) { setErr("Passwords match nahi!"); return; }
+    localStorage.setItem(ADMIN_PASS_KEY, np);
+    setMode("login"); setErr("");
+    alert("✅ Password change ho gaya!");
   }
-
-  function openScript(site) {
-    setSelected(site);
-    setCopied(false);
-    setView("script");
-  }
-
-  function handleSave() {
-    const nums = form.numbers.filter(n => n.trim());
-    if (!form.name.trim() || !form.url.trim() || nums.length === 0) {
-      showToast("Please fill all required fields", "error");
-      return;
-    }
-    if (view === "add") {
-      const newSite = {
-        id: generateId(),
-        name: form.name.trim(),
-        url: form.url.trim(),
-        enabled: true,
-        numbers: nums,
-        secretKey: form.secretKey.trim(),
-        installedAt: new Date().toISOString(),
-        lastActive: new Date().toISOString(),
-      };
-      setSites(prev => [newSite, ...prev]);
-      showToast("Website added successfully!");
-    } else {
-      setSites(prev => prev.map(s => s.id === selected.id
-        ? { ...s, name: form.name.trim(), url: form.url.trim(), secretKey: form.secretKey.trim(), numbers: nums }
-        : s
-      ));
-      showToast("Website updated!");
-    }
-    setView("dashboard");
-  }
-
-  function toggleSite(id) {
-    setSites(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
-  }
-
-  function deleteSite(id) {
-    setSites(prev => prev.filter(s => s.id !== id));
-    setDeleteConfirm(null);
-    showToast("Website removed", "error");
-  }
-
-  function handleCopy(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      showToast("Script copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  function addNumberField() {
-    setForm(f => ({ ...f, numbers: [...f.numbers, ""] }));
-  }
-
-  function updateNumber(i, val) {
-    setForm(f => {
-      const nums = [...f.numbers];
-      nums[i] = val;
-      return { ...f, numbers: nums };
-    });
-  }
-
-  function removeNumber(i) {
-    setForm(f => ({ ...f, numbers: f.numbers.filter((_, idx) => idx !== i) }));
-  }
-
-  const script = selected ? generateScript(selected) : "";
 
   return (
-    <div style={styles.root}>
-      {/* Toast */}
-      {toast && (
-        <div style={{ ...styles.toast, background: toast.type === "error" ? "#ef4444" : "#22c55e" }}>
-          {toast.type === "error" ? "✕ " : "✓ "}{toast.msg}
-        </div>
-      )}
-
-      {/* Delete Confirm Modal */}
-      {deleteConfirm && (
-        <div style={styles.overlay}>
-          <div style={styles.modal}>
-            <div style={styles.modalIcon}>🗑️</div>
-            <h3 style={styles.modalTitle}>Delete Website?</h3>
-            <p style={styles.modalText}>This will permanently remove <strong>{deleteConfirm.name}</strong> and its embed script.</p>
-            <div style={styles.modalActions}>
-              <button style={styles.btnGhost} onClick={() => setDeleteConfirm(null)}>Cancel</button>
-              <button style={styles.btnDanger} onClick={() => deleteSite(deleteConfirm.id)}>Delete</button>
-            </div>
+    <div className="login-wrap">
+      <div className="login-card">
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ width: 64, height: 64, background: "#dcfce7", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 12px" }}>💬</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#1e293b" }}>WBManager</div>
+          <div style={{ display: "inline-block", background: "#dcfce7", color: "#16a34a", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 20, marginTop: 8, border: "1px solid #86efac" }}>
+            {mode === "login" ? "ADMIN PORTAL v11.0" : mode === "recover" ? "RECOVERY" : "NEW PASSWORD"}
           </div>
         </div>
-      )}
+        {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
 
-      {/* Sidebar */}
-      <aside style={styles.sidebar}>
-        <div style={styles.logo}>
-          <span style={styles.logoIcon}>💬</span>
-          <span style={styles.logoText}>WBManager</span>
-        </div>
-        <nav style={styles.nav}>
-          {[
-            { icon: "⊞", label: "Dashboard", key: "dashboard" },
-            { icon: "＋", label: "Add Website", key: "add" },
-          ].map(item => (
-            <button
-              key={item.key}
-              style={{ ...styles.navBtn, ...(view === item.key || (item.key === "add" && view === "add") ? styles.navBtnActive : {}) }}
-              onClick={() => item.key === "add" ? openAdd() : setView(item.key)}
-            >
-              <span style={styles.navIcon}>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <div style={styles.sidebarFooter}>
-          <div style={styles.planBadge}>Free Plan · {sites.length}/5 sites</div>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main style={styles.main}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div>
-            <h1 style={styles.pageTitle}>
-              {view === "dashboard" && "My Websites"}
-              {view === "add" && "Add New Website"}
-              {view === "edit" && "Edit Website"}
-              {view === "script" && "Embed Script"}
-            </h1>
-            <p style={styles.pageSubtitle}>
-              {view === "dashboard" && `${sites.filter(s => s.enabled).length} active integrations`}
-              {view === "add" && "Connect a new website to WhatsApp"}
-              {view === "edit" && selected?.name}
-              {view === "script" && selected?.url}
-            </p>
-          </div>
-          {view === "dashboard" && (
-            <button style={styles.btnPrimary} onClick={openAdd}>+ Add Website</button>
-          )}
-          {(view === "add" || view === "edit" || view === "script") && (
-            <button style={styles.btnGhost} onClick={() => setView("dashboard")}>← Back</button>
-          )}
-        </header>
-
-        {/* Dashboard */}
-        {view === "dashboard" && (
-          <div style={styles.content}>
-            {/* Stats */}
-            <div style={styles.statsRow}>
-              {[
-                { label: "Total Sites", value: sites.length, icon: "🌐" },
-                { label: "Active", value: sites.filter(s => s.enabled).length, icon: "✅" },
-                { label: "Inactive", value: sites.filter(s => !s.enabled).length, icon: "⏸️" },
-                { label: "WA Numbers", value: sites.reduce((a, s) => a + s.numbers.length, 0), icon: "📱" },
-              ].map(stat => (
-                <div key={stat.label} style={styles.statCard}>
-                  <span style={styles.statIcon}>{stat.icon}</span>
-                  <span style={styles.statValue}>{stat.value}</span>
-                  <span style={styles.statLabel}>{stat.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Table */}
-            {sites.length === 0 ? (
-              <div style={styles.empty}>
-                <div style={styles.emptyIcon}>🌐</div>
-                <h3 style={styles.emptyTitle}>No websites yet</h3>
-                <p style={styles.emptyText}>Add your first website to get started</p>
-                <button style={styles.btnPrimary} onClick={openAdd}>+ Add Website</button>
-              </div>
-            ) : (
-              <div style={styles.tableWrap}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      {["Website", "Numbers", "Status", "Installed", "Last Active", "Actions"].map(h => (
-                        <th key={h} style={styles.th}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sites.map((site, idx) => (
-                      <tr key={site.id} style={{ ...styles.tr, animationDelay: `${idx * 60}ms` }}>
-                        <td style={styles.td}>
-                          <div style={styles.siteName}>{site.name}</div>
-                          <div style={styles.siteUrl}>{site.url}</div>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.numbers}>
-                            {site.numbers.map(n => (
-                              <span key={n} style={styles.numberTag}>{n}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td style={styles.td}>
-                          <span style={{ ...styles.badge, ...(site.enabled ? styles.badgeActive : styles.badgeInactive) }}>
-                            {site.enabled ? "● Active" : "● Inactive"}
-                          </span>
-                        </td>
-                        <td style={styles.td}><span style={styles.dateText}>{formatDate(site.installedAt)}</span></td>
-                        <td style={styles.td}><span style={styles.dateText}>{timeSince(site.lastActive)}</span></td>
-                        <td style={styles.td}>
-                          <div style={styles.actions}>
-                            <button style={styles.actionBtn} title="Get Script" onClick={() => openScript(site)}>📋</button>
-                            <button style={styles.actionBtn} title="Edit" onClick={() => openEdit(site)}>✏️</button>
-                            <button
-                              style={{ ...styles.actionBtn, ...styles.toggleBtn, background: site.enabled ? "#fef3c7" : "#dcfce7" }}
-                              title={site.enabled ? "Disable" : "Enable"}
-                              onClick={() => toggleSite(site.id)}
-                            >
-                              {site.enabled ? "⏸" : "▶"}
-                            </button>
-                            <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} title="Delete" onClick={() => setDeleteConfirm(site)}>🗑</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Add / Edit Form */}
-        {(view === "add" || view === "edit") && (
-          <div style={styles.content}>
-            <div style={styles.formCard}>
-              <div style={styles.formGrid}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Website Name *</label>
-                  <input
-                    style={styles.input}
-                    placeholder="e.g. My Online Store"
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  />
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Website URL *</label>
-                  <input
-                    style={styles.input}
-                    placeholder="https://yoursite.com"
-                    value={form.url}
-                    onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                  />
-                </div>
-                <div style={{ ...styles.formGroup, gridColumn: "1/-1" }}>
-                  <label style={styles.label}>Secret Key (optional)</label>
-                  <input
-                    style={styles.input}
-                    placeholder="sk_live_... (for order tracking)"
-                    value={form.secretKey}
-                    onChange={e => setForm(f => ({ ...f, secretKey: e.target.value }))}
-                  />
-                  <span style={styles.hint}>Included in WhatsApp messages for order verification</span>
-                </div>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>WhatsApp Numbers *</label>
-                <div style={styles.numbersForm}>
-                  {form.numbers.map((num, i) => (
-                    <div key={i} style={styles.numberRow}>
-                      <span style={styles.waIcon}>📱</span>
-                      <input
-                        style={{ ...styles.input, flex: 1, margin: 0 }}
-                        placeholder="+92 300 1234567"
-                        value={num}
-                        onChange={e => updateNumber(i, e.target.value)}
-                      />
-                      {form.numbers.length > 1 && (
-                        <button style={styles.removeBtn} onClick={() => removeNumber(i)}>✕</button>
-                      )}
-                    </div>
-                  ))}
-                  <button style={styles.addNumBtn} onClick={addNumberField}>+ Add Another Number</button>
-                </div>
-              </div>
-
-              <div style={styles.formActions}>
-                <button style={styles.btnGhost} onClick={() => setView("dashboard")}>Cancel</button>
-                <button style={styles.btnPrimary} onClick={handleSave}>
-                  {view === "add" ? "Add Website" : "Save Changes"}
-                </button>
-              </div>
+        {mode === "login" && (<>
+          <div className="fg"><label className="lbl">USERNAME</label><input className="inp" placeholder="admin" value={u} onChange={e => { setU(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && doLogin()} /></div>
+          <div className="fg" style={{ marginBottom: 8 }}>
+            <label className="lbl">PASSWORD</label>
+            <div style={{ position: "relative" }}>
+              <input className="inp" style={{ paddingRight: 44 }} type={show ? "text" : "password"} placeholder="••••••••" value={p} onChange={e => { setP(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && doLogin()} />
+              <span onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 18 }}>{show ? "🙈" : "👁"}</span>
             </div>
           </div>
-        )}
-
-        {/* Script View */}
-        {view === "script" && selected && (
-          <div style={styles.content}>
-            <div style={styles.scriptCard}>
-              <div style={styles.scriptHeader}>
-                <div>
-                  <h3 style={styles.scriptTitle}>Your Embed Script</h3>
-                  <p style={styles.scriptSub}>Paste this before the <code style={styles.code}>&lt;/body&gt;</code> tag on your website</p>
-                </div>
-                <button style={{ ...styles.btnPrimary, ...(copied ? styles.btnCopied : {}) }} onClick={() => handleCopy(script)}>
-                  {copied ? "✓ Copied!" : "📋 Copy Script"}
-                </button>
-              </div>
-              <pre style={styles.scriptBox}>{script}</pre>
-
-              <div style={styles.infoGrid}>
-                <div style={styles.infoCard}>
-                  <span style={styles.infoIcon}>🔍</span>
-                  <div>
-                    <div style={styles.infoTitle}>Auto Detection</div>
-                    <div style={styles.infoDesc}>Scans product cards, WooCommerce items, and blog posts automatically</div>
-                  </div>
-                </div>
-                <div style={styles.infoCard}>
-                  <span style={styles.infoIcon}>📨</span>
-                  <div>
-                    <div style={styles.infoTitle}>Rich Messages</div>
-                    <div style={styles.infoDesc}>Sends product title, price, image & link to WhatsApp</div>
-                  </div>
-                </div>
-                <div style={styles.infoCard}>
-                  <span style={styles.infoIcon}>🔄</span>
-                  <div>
-                    <div style={styles.infoTitle}>Live Updates</div>
-                    <div style={styles.infoDesc}>MutationObserver watches for dynamically loaded products</div>
-                  </div>
-                </div>
-                <div style={styles.infoCard}>
-                  <span style={styles.infoIcon}>⚖️</span>
-                  <div>
-                    <div style={styles.infoTitle}>Load Balancing</div>
-                    <div style={styles.infoDesc}>Rotates between {selected.numbers.length} WhatsApp number{selected.numbers.length > 1 ? "s" : ""} automatically</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div style={{ textAlign: "right", marginBottom: 20 }}>
+            <span onClick={() => { setMode("recover"); setErr(""); }} style={{ fontSize: 12, color: "#16a34a", cursor: "pointer", fontWeight: 600 }}>🔑 Forgot Password?</span>
           </div>
-        )}
-      </main>
+          <button className="btn-p" style={{ width: "100%", padding: 13, fontSize: 15, borderRadius: 10 }} onClick={doLogin}>Login →</button>
+          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#0369a1" }}>🕐 Auto-logout: 30 minutes idle</div>
+        </>)}
+
+        {mode === "recover" && (<>
+          <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>
+            🔑 Recovery code:<br/><b style={{ fontFamily: "monospace" }}>WBM-RECOVERY-2026-ADNAN</b>
+          </div>
+          <div className="fg"><label className="lbl">RECOVERY CODE</label><input className="inp" placeholder="WBM-RECOVERY-..." value={rec} onChange={e => { setRec(e.target.value); setErr(""); }} /></div>
+          <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10, marginBottom: 10 }} onClick={doRecover}>Verify →</button>
+          <button className="btn-g" style={{ width: "100%", padding: 10, borderRadius: 10 }} onClick={() => { setMode("login"); setErr(""); }}>← Back</button>
+        </>)}
+
+        {mode === "newpass" && (<>
+          <div className="success-box">✅ Verified! Naya password set karein.</div>
+          <div className="fg"><label className="lbl">NEW PASSWORD</label><input className="inp" type="password" placeholder="Min 6 characters" value={np} onChange={e => { setNp(e.target.value); setErr(""); }} /></div>
+          <div className="fg" style={{ marginBottom: 20 }}><label className="lbl">CONFIRM PASSWORD</label><input className="inp" type="password" placeholder="Dobara likho" value={cp} onChange={e => { setCp(e.target.value); setErr(""); }} /></div>
+          <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10 }} onClick={doNewPass}>Set Password →</button>
+        </>)}
+      </div>
     </div>
   );
 }
 
-const styles = {
-  root: {
-    display: "flex", minHeight: "100vh",
-    background: "#0f1117",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    color: "#e2e8f0",
-  },
-  toast: {
-    position: "fixed", top: 20, right: 20, zIndex: 9999,
-    padding: "12px 20px", borderRadius: 10, color: "#fff",
-    fontWeight: 600, fontSize: 14, boxShadow: "0 4px 20px rgba(0,0,0,.4)",
-    animation: "fadeIn .3s ease",
-  },
-  overlay: {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
-    zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center",
-  },
-  modal: {
-    background: "#1a1f2e", borderRadius: 16, padding: 32, maxWidth: 380, width: "90%",
-    border: "1px solid #2d3748", textAlign: "center",
-  },
-  modalIcon: { fontSize: 40, marginBottom: 12 },
-  modalTitle: { fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#f1f5f9" },
-  modalText: { fontSize: 14, color: "#94a3b8", marginBottom: 24 },
-  modalActions: { display: "flex", gap: 12, justifyContent: "center" },
+// ─── MAIN APP ─────────────────────────────────────────────
+const EF = { name: "", url: "", secretKey: "", numbers: [""], payment: "paid", plan: "basic" };
 
-  sidebar: {
-    width: 220, background: "#0d1117", borderRight: "1px solid #1e2533",
-    display: "flex", flexDirection: "column", padding: "0 0 20px",
-    position: "sticky", top: 0, height: "100vh",
-  },
-  logo: {
-    display: "flex", alignItems: "center", gap: 10,
-    padding: "24px 20px 20px", borderBottom: "1px solid #1e2533",
-  },
-  logoIcon: { fontSize: 26 },
-  logoText: { fontWeight: 800, fontSize: 17, color: "#f1f5f9", letterSpacing: "-.3px" },
-  nav: { flex: 1, padding: "16px 10px", display: "flex", flexDirection: "column", gap: 4 },
-  navBtn: {
-    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-    borderRadius: 8, border: "none", background: "transparent",
-    color: "#64748b", cursor: "pointer", fontSize: 14, fontWeight: 500,
-    textAlign: "left", transition: "all .15s",
-  },
-  navBtnActive: { background: "#1a2035", color: "#25D366", fontWeight: 600 },
-  navIcon: { fontSize: 16, width: 20, textAlign: "center" },
-  sidebarFooter: { padding: "0 14px" },
-  planBadge: {
-    background: "#1a2035", color: "#64748b", fontSize: 12,
-    padding: "8px 12px", borderRadius: 8, textAlign: "center",
-    border: "1px solid #2d3748",
-  },
+export default function App() {
+  useEffect(() => { injectCSS(); }, []);
+  const [loggedIn, setLoggedIn] = useState(() => !!getSession());
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [view, setView] = useState("dashboard");
+  const [sel, setSel] = useState(null);
+  const [form, setForm] = useState(EF);
+  const [toast, setToast] = useState(null);
+  const [delItem, setDelItem] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState("script");
+  const [verifying, setVerifying] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const [isWide, setIsWide] = useState(window.innerWidth >= 900);
 
-  main: { flex: 1, display: "flex", flexDirection: "column", overflow: "auto" },
-  header: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "28px 32px 0", borderBottom: "1px solid #1e2533", paddingBottom: 20,
-  },
-  pageTitle: { fontSize: 22, fontWeight: 700, color: "#f1f5f9", margin: 0 },
-  pageSubtitle: { fontSize: 13, color: "#64748b", marginTop: 3 },
-  content: { padding: "28px 32px", flex: 1 },
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (loggedIn && !getSession()) { setLoggedIn(false); toast_("Session expire — dobara login karein", "warn"); }
+      if (loggedIn) setSession();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [loggedIn]);
 
-  statsRow: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 },
-  statCard: {
-    background: "#151b27", border: "1px solid #1e2d3d", borderRadius: 12,
-    padding: "18px 20px", display: "flex", flexDirection: "column", gap: 4,
-  },
-  statIcon: { fontSize: 22, marginBottom: 4 },
-  statValue: { fontSize: 28, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 },
-  statLabel: { fontSize: 12, color: "#64748b", fontWeight: 500 },
+  useEffect(() => { const fn = () => setIsWide(window.innerWidth >= 900); window.addEventListener("resize", fn); return () => window.removeEventListener("resize", fn); }, []);
 
-  tableWrap: { background: "#151b27", border: "1px solid #1e2533", borderRadius: 14, overflow: "hidden" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: {
-    padding: "13px 16px", textAlign: "left", fontSize: 11,
-    fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: ".6px",
-    background: "#0f1520", borderBottom: "1px solid #1e2533",
-  },
-  tr: { borderBottom: "1px solid #1a2035", transition: "background .15s" },
-  td: { padding: "14px 16px", verticalAlign: "middle", fontSize: 14 },
-  siteName: { fontWeight: 600, color: "#e2e8f0", fontSize: 14 },
-  siteUrl: { fontSize: 12, color: "#64748b", marginTop: 2 },
-  numbers: { display: "flex", flexWrap: "wrap", gap: 4 },
-  numberTag: {
-    background: "#0d2210", color: "#25D366", fontSize: 11,
-    padding: "3px 8px", borderRadius: 20, fontWeight: 600, border: "1px solid #1a3d20",
-  },
-  badge: {
-    fontSize: 12, fontWeight: 700, padding: "4px 10px",
-    borderRadius: 20, display: "inline-block",
-  },
-  badgeActive: { background: "#0d2210", color: "#22c55e", border: "1px solid #166534" },
-  badgeInactive: { background: "#1c1c1c", color: "#64748b", border: "1px solid #2d3748" },
-  dateText: { color: "#64748b", fontSize: 13 },
-  actions: { display: "flex", gap: 6, alignItems: "center" },
-  actionBtn: {
-    background: "#1e2533", border: "1px solid #2d3748", borderRadius: 7,
-    padding: "6px 9px", cursor: "pointer", fontSize: 15, transition: "all .15s",
-  },
-  toggleBtn: {},
-  deleteBtn: { background: "#2a1515", border: "1px solid #4a1515" },
+  const loadSites = useCallback(async () => {
+    setLoading(true);
+    const data = await sb.getSites();
+    if (data) setSites(data.map(mapRow));
+    setLoading(false);
+  }, []);
 
-  empty: {
-    textAlign: "center", padding: "80px 20px",
-    background: "#151b27", border: "1px solid #1e2533", borderRadius: 14,
-  },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: 700, color: "#e2e8f0", marginBottom: 8 },
-  emptyText: { fontSize: 14, color: "#64748b", marginBottom: 24 },
+  useEffect(() => { if (loggedIn) loadSites(); }, [loggedIn, loadSites]);
 
-  formCard: {
-    background: "#151b27", border: "1px solid #1e2533",
-    borderRadius: 16, padding: 32, maxWidth: 700,
-  },
-  formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 },
-  formGroup: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 13, fontWeight: 600, color: "#94a3b8" },
-  input: {
-    background: "#0f1520", border: "1px solid #2d3748", borderRadius: 9,
-    padding: "11px 14px", color: "#e2e8f0", fontSize: 14, outline: "none",
-    transition: "border .15s",
-  },
-  hint: { fontSize: 11, color: "#475569" },
-  numbersForm: { display: "flex", flexDirection: "column", gap: 10 },
-  numberRow: { display: "flex", alignItems: "center", gap: 10 },
-  waIcon: { fontSize: 20 },
-  removeBtn: {
-    background: "#2a1515", border: "1px solid #4a1515", color: "#ef4444",
-    borderRadius: 7, padding: "8px 12px", cursor: "pointer", fontSize: 14, fontWeight: 700,
-  },
-  addNumBtn: {
-    background: "transparent", border: "2px dashed #2d3748", color: "#64748b",
-    borderRadius: 9, padding: "10px", cursor: "pointer", fontSize: 13,
-    fontWeight: 600, transition: "all .15s", textAlign: "center",
-  },
-  formActions: { display: "flex", gap: 12, marginTop: 28, justifyContent: "flex-end" },
+  if (!loggedIn) return <Login onLogin={() => setLoggedIn(true)} />;
 
-  scriptCard: {
-    background: "#151b27", border: "1px solid #1e2533", borderRadius: 16, padding: 32,
-  },
-  scriptHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, gap: 16 },
-  scriptTitle: { fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0, marginBottom: 6 },
-  scriptSub: { fontSize: 13, color: "#64748b" },
-  scriptBox: {
-    background: "#0a0e17", border: "1px solid #1e2533", borderRadius: 10,
-    padding: 20, overflow: "auto", fontSize: 12, color: "#7dd3fc",
-    lineHeight: 1.7, fontFamily: "'Fira Code', monospace", maxHeight: 380,
-    whiteSpace: "pre-wrap", wordBreak: "break-word",
-  },
-  code: {
-    background: "#1e2533", color: "#f59e0b", padding: "2px 6px",
-    borderRadius: 4, fontFamily: "monospace", fontSize: 12,
-  },
-  infoGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 24 },
-  infoCard: {
-    background: "#0f1520", border: "1px solid #1e2533", borderRadius: 10,
-    padding: "14px 16px", display: "flex", alignItems: "flex-start", gap: 12,
-  },
-  infoIcon: { fontSize: 22, flexShrink: 0 },
-  infoTitle: { fontSize: 13, fontWeight: 700, color: "#cbd5e1", marginBottom: 3 },
-  infoDesc: { fontSize: 12, color: "#64748b", lineHeight: 1.5 },
+  function toast_(msg, t = "ok") { setToast({ msg, t }); setTimeout(() => setToast(null), 3500); }
+  function logout() { clearSession(); setLoggedIn(false); }
+  function goTo(v) { setView(v); setNavOpen(false); setSession(); }
+  function openAdd() { setForm({ ...EF, numbers: [""] }); goTo("add"); }
+  function openEdit(s) { setSel(s); setForm({ name: s.name, url: s.url, secretKey: s.secretKey || "", numbers: [...s.numbers], payment: s.payment || "paid", plan: s.plan || "basic" }); goTo("edit"); }
+  function openScript(s) { setSel(s); setCopied(false); setTab("script"); goTo("script"); }
 
-  btnPrimary: {
-    background: "#25D366", color: "#fff", border: "none", borderRadius: 9,
-    padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
-    transition: "all .15s", whiteSpace: "nowrap",
-  },
-  btnCopied: { background: "#22c55e" },
-  btnGhost: {
-    background: "transparent", color: "#94a3b8", border: "1px solid #2d3748",
-    borderRadius: 9, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer",
-  },
-  btnDanger: {
-    background: "#ef4444", color: "#fff", border: "none",
-    borderRadius: 9, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
-  },
-};
+  async function handleSave() {
+    const nums = form.numbers.filter(n => n.trim());
+    if (!form.name.trim() || !form.url.trim() || !nums.length) { toast_("Sab required fields bharein!", "err"); return; }
+    setSaving(true);
+    const siteData = {
+      id: view === "add" ? genId() : sel.id,
+      name: form.name.trim(), url: form.url.trim(),
+      enabled: form.payment === "paid",
+      numbers: nums, secretKey: form.secretKey.trim(),
+      installedAt: view === "add" ? new Date().toISOString() : sel.installedAt,
+      lastActive: new Date().toISOString(),
+      payment: form.payment, plan: form.plan,
+      clicks: view === "add" ? 0 : sel.clicks,
+      impressions: view === "add" ? 0 : sel.impressions,
+      verified: view === "add" ? false : sel.verified,
+    };
+    const res = await sb.upsertSite(siteData);
+    if (res !== null) { toast_(view === "add" ? "Website add ho gayi! ✅" : "Update ho gayi! ✅"); await loadSites(); goTo("dashboard"); }
+    else toast_("Error — dobara try karein!", "err");
+    setSaving(false);
+  }
+
+  async function toggleSite(site) {
+    if (site.payment === "pending") { toast_("Pehle payment complete karein!", "err"); return; }
+    const newEnabled = !site.enabled;
+    setSites(p => p.map(s => s.id === site.id ? { ...s, enabled: newEnabled } : s));
+    const res = await sb.updateSite(site.id, { enabled: newEnabled });
+    if (res !== null) toast_(newEnabled ? "✅ Button ON — Client site pe visible!" : "⏸ Button OFF — Foran gayab!");
+    else { setSites(p => p.map(s => s.id === site.id ? { ...s, enabled: site.enabled } : s)); toast_("Error!", "err"); }
+  }
+
+  async function setPlan(id, plan) {
+    setSites(p => p.map(s => s.id === id ? { ...s, plan } : s));
+    if (sel?.id === id) setSel(s => ({ ...s, plan }));
+    await sb.updateSite(id, { plan });
+    toast_(plan === "pro" ? "🚀 Pro Plan active!" : "🔵 Basic Plan active!");
+  }
+
+  async function setPayment(id, val) {
+    const site = sites.find(s => s.id === id);
+    if (!site) return;
+    setSites(p => p.map(s => s.id === id ? { ...s, payment: val, enabled: val === "pending" ? false : s.enabled } : s));
+    if (sel?.id === id) setSel(s => ({ ...s, payment: val }));
+    await sb.updateSite(id, { payment: val, enabled: val === "pending" ? false : site.enabled });
+    if (val === "pending") { setTimeout(() => window.open(waReminderMsg(site), "_blank"), 400); toast_("WA reminder ja raha hai 📤", "warn"); }
+    else toast_("Payment confirmed! ✅");
+  }
+
+  async function doVerify(id) {
+    setVerifying(id);
+    await sb.updateSite(id, { verified: true });
+    setSites(p => p.map(s => s.id === id ? { ...s, verified: true } : s));
+    setVerifying(null); toast_("Domain verified! ✅");
+  }
+
+  async function doDelete(id) {
+    await sb.deleteSite(id);
+    setSites(p => p.filter(s => s.id !== id));
+    setDelItem(null); toast_("Remove ho gayi!", "err");
+  }
+
+  function copyScript() {
+    navigator.clipboard.writeText(genScript(sel)).then(() => { setCopied(true); toast_("Script copied! ✅"); setTimeout(() => setCopied(false), 2500); });
+  }
+
+  const totalClicks = sites.reduce((a, s) => a + (s.clicks || 0), 0);
+  const paidC = sites.filter(s => s.payment === "paid").length;
+  const pendC = sites.filter(s => s.payment === "pending").length;
+  const activeC = sites.filter(s => s.enabled).length;
+  const proC = sites.filter(s => s.plan === "pro").length;
+  const basicC = sites.filter(s => s.plan === "basic").length;
+  const toastBg = { ok: "#16a34a", err: "#dc2626", warn: "#d97706" };
+
+  const STATS = [
+    { lb: "Total Sites", val: sites.length, ic: "🌐", cl: "#2563eb" },
+    { lb: "Active", val: activeC, ic: "✅", cl: "#16a34a" },
+    { lb: "Basic", val: basicC, ic: "🔵", cl: "#0369a1" },
+    { lb: "Pro", val: proC, ic: "🚀", cl: "#d97706" },
+    { lb: "Paid", val: paidC, ic: "💰", cl: "#7c3aed" },
+    { lb: "Pending", val: pendC, ic: "⏳", cl: "#dc2626" },
+  ];
+
+  return (
+    <div className="wbm-root">
+      {toast && <div className="toast" style={{ background: toastBg[toast.t] || toastBg.ok }}>{toast.msg}</div>}
+
+      {delItem && (
+        <div className="modal-ov">
+          <div className="modal">
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🗑️</div>
+            <h3 style={{ color: "#1e293b", marginBottom: 8, fontWeight: 700 }}>Delete karein?</h3>
+            <p style={{ color: "#64748b", fontSize: 14, marginBottom: 22 }}><b>{delItem.name}</b> permanently remove hogi.</p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn-g" onClick={() => setDelItem(null)}>Cancel</button>
+              <button className="btn-p" style={{ background: "#dc2626", boxShadow: "none" }} onClick={() => doDelete(delItem.id)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`sidebar-overlay${navOpen ? " show" : ""}`} onClick={() => setNavOpen(false)} />
+
+      {/* SIDEBAR */}
+      <aside className={`sidebar${!isWide && !navOpen ? " hidden" : ""}`}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "20px 16px 18px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ width: 40, height: 40, background: "#dcfce7", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>💬</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>WBManager</div>
+            <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 700 }}>v11.0 <span style={{ background: "#dcfce7", padding: "1px 6px", borderRadius: 8, border: "1px solid #86efac" }}>LIVE</span></div>
+          </div>
+          {!isWide && <button onClick={() => setNavOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}>✕</button>}
+        </div>
+        <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 3 }}>
+          <button className={`nav-btn${view === "dashboard" ? " active" : ""}`} onClick={() => goTo("dashboard")}><span style={{ fontSize: 18 }}>⊞</span> Dashboard</button>
+          <button className={`nav-btn${view === "add" ? " active" : ""}`} onClick={openAdd}><span style={{ fontSize: 18 }}>＋</span> Add Website</button>
+        </nav>
+        <div style={{ padding: "14px 16px", borderTop: "1px solid #e2e8f0" }}>
+          <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 10 }}>Quick Stats</div>
+          {[["🔵", `${basicC} Basic`, "#0369a1"], ["🚀", `${proC} Pro`, "#d97706"], ["✅", `${paidC} Paid`, "#16a34a"], ["⏳", `${pendC} Pending`, "#dc2626"]].map(([ic, lb, cl]) => (
+            <div key={lb} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: cl, marginBottom: 7, fontWeight: 600 }}>{ic} {lb}</div>
+          ))}
+          <button onClick={logout} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 9, padding: "9px", cursor: "pointer", fontSize: 13, fontWeight: 600, marginTop: 10 }}>🚪 Logout</button>
+        </div>
+      </aside>
+
+      {/* MAIN */}
+      <div className={`main-wrap${isWide ? " with-sidebar" : ""}`}>
+        <div className="topbar">
+          {!isWide && <button className="menu-btn btn-g" style={{ padding: "8px 12px", fontSize: 18 }} onClick={() => setNavOpen(true)}>☰</button>}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+              {{ dashboard: "Dashboard", add: "Add Website", edit: "Edit Website", script: "Embed Script" }[view]}
+              {view === "dashboard" && <span className="live-badge">● LIVE</span>}
+            </div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{view === "dashboard" ? `${activeC} active · ${basicC} Basic · ${proC} Pro` : sel?.name || "Naya website"}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {view === "dashboard" && <button className="btn-g" style={{ fontSize: 12, padding: "8px 12px" }} onClick={loadSites}>🔄</button>}
+            {view === "dashboard" ? <button className="btn-p" onClick={openAdd}>+ Add</button> : <button className="btn-g" onClick={() => goTo("dashboard")}>← Back</button>}
+          </div>
+        </div>
+
+        <div className="page">
+
+          {/* DASHBOARD */}
+          {view === "dashboard" && (<>
+            <div className="stats-grid">
+              {STATS.map(s => (
+                <div key={s.lb} className="stat-card">
+                  <span style={{ fontSize: 22 }}>{s.ic}</span>
+                  <span style={{ fontSize: 24, fontWeight: 800, color: s.cl, lineHeight: 1 }}>{s.val}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.lb}</span>
+                </div>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="loading"><div className="spinner" /><span style={{ color: "#94a3b8" }}>Loading...</span></div>
+            ) : (
+              <div className="card">
+                <div className="card-title">🌐 Websites ({sites.length})</div>
+                {sites.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                    <div style={{ fontSize: 48, marginBottom: 14 }}>🌐</div>
+                    <p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi website nahi!</p>
+                    <button className="btn-p" onClick={openAdd}>+ Add Website</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {sites.map(site => (
+                      <div key={site.id} className="site-card">
+                        {/* Header */}
+                        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{site.name}</span>
+                              {site.verified && <span className="badge-ver">✓ Verified</span>}
+                              <span className={site.plan === "pro" ? "badge-pro" : "badge-basic"}>{site.plan === "pro" ? "🚀 Pro" : "🔵 Basic"}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{site.url}</div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Button:</span>
+                              <button className={`toggle-btn ${site.enabled ? "on" : "off"}`} onClick={() => toggleSite(site)} />
+                              <span style={{ fontSize: 12, fontWeight: 700, color: site.enabled ? "#16a34a" : "#94a3b8" }}>{site.enabled ? "ON" : "OFF"}</span>
+                            </div>
+                            <span className={`badge ${site.payment === "paid" ? "badge-blue" : "badge-amber"}`}>{site.payment === "paid" ? "💰 Paid" : "⏳ Pending"}</span>
+                          </div>
+                        </div>
+
+                        {/* Info chips */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {[`📱 ${site.numbers.length} number`, `👆 ${site.clicks || 0} clicks`, `📅 ${fmtDate(site.installedAt)}`, `🕐 ${timeAgo(site.lastActive)}`].map(c => <span key={c} className="chip">{c}</span>)}
+                        </div>
+
+                        {/* Plan toggle */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Plan:</span>
+                          <button className={`plan-btn${site.plan === "basic" ? " basic-active" : ""}`} onClick={() => setPlan(site.id, "basic")}>🔵 Basic</button>
+                          <button className={`plan-btn${site.plan === "pro" ? " pro-active" : ""}`} onClick={() => setPlan(site.id, "pro")}>🚀 Pro</button>
+                        </div>
+
+                        {/* Payment */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Payment:</span>
+                          <button className={`btn-pay${site.payment === "paid" ? " paid" : ""}`} onClick={() => setPayment(site.id, "paid")}>✅ Paid</button>
+                          <button className={`btn-pay${site.payment === "pending" ? " pend" : ""}`} onClick={() => setPayment(site.id, "pending")}>⏳ Pending</button>
+                          {!site.verified && <button className="btn-ver" onClick={() => doVerify(site.id)} disabled={verifying === site.id}>{verifying === site.id ? "⏳..." : "🔍 Verify"}</button>}
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          <button className="btn-a" onClick={() => openScript(site)}>📋 Script</button>
+                          <button className="btn-a" onClick={() => openEdit(site)}>✏️ Edit</button>
+                          <button className="btn-a" style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }} onClick={() => setDelItem(site)}>🗑 Delete</button>
+                          <button className="btn-a" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#86efac" }} onClick={() => window.open(waReminderMsg(site), "_blank")}>📤 WA Reminder</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>)}
+
+          {/* ADD/EDIT */}
+          {(view === "add" || view === "edit") && (
+            <div className="card">
+              <div className="form-grid" style={{ marginBottom: 4 }}>
+                <div className="fg"><label className="lbl">Website Name *</label><input className="inp" placeholder="My Online Store" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+                <div className="fg"><label className="lbl">Website URL *</label><input className="inp" placeholder="https://yoursite.com" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} /></div>
+                <div className="fg" style={{ gridColumn: "1/-1" }}><label className="lbl">Secret ID (optional)</label><input className="inp" placeholder="e.g. SDP001" value={form.secretKey} onChange={e => setForm(f => ({ ...f, secretKey: e.target.value }))} /></div>
+              </div>
+
+              <div className="fg">
+                <label className="lbl">WhatsApp Numbers *</label>
+                {form.numbers.map((n, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                    <span>📱</span>
+                    <input className="inp" style={{ flex: 1 }} placeholder="+92 300 1234567" value={n} onChange={e => { const a = [...form.numbers]; a[i] = e.target.value; setForm(f => ({ ...f, numbers: a })); }} />
+                    {form.numbers.length > 1 && <button onClick={() => setForm(f => ({ ...f, numbers: f.numbers.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "9px 12px", cursor: "pointer", fontWeight: 700 }}>✕</button>}
+                  </div>
+                ))}
+                <button onClick={() => setForm(f => ({ ...f, numbers: [...f.numbers, ""] }))} style={{ background: "transparent", border: "2px dashed #e2e8f0", color: "#94a3b8", borderRadius: 9, padding: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, width: "100%" }}>+ Add Number</button>
+              </div>
+
+              {/* Plan Selection */}
+              <div className="fg">
+                <label className="lbl">SELECT PLAN *</label>
+                <div className="plan-compare">
+                  <div className={`plan-card basic${form.plan === "basic" ? " selected" : ""}`} onClick={() => setForm(f => ({ ...f, plan: "basic" }))}>
+                    <div className="plan-card-title">🔵 Basic Plan</div>
+                    <div className="plan-price">PKR 499<span style={{ fontSize: 12 }}>/mo</span></div>
+                    <div className="plan-feature">Floating WhatsApp button</div>
+                    <div className="plan-feature">Sirf inquiry message</div>
+                    <div className="plan-feature">Real-time ON/OFF control</div>
+                    <div className="plan-feature no">Product details nahi</div>
+                    <div className="plan-feature no">Price auto detect nahi</div>
+                  </div>
+                  <div className={`plan-card pro${form.plan === "pro" ? " selected" : ""}`} onClick={() => setForm(f => ({ ...f, plan: "pro" }))}>
+                    <div className="plan-card-title">🚀 Pro Plan</div>
+                    <div className="plan-price">PKR 999<span style={{ fontSize: 12 }}>/mo</span></div>
+                    <div className="plan-feature">Floating WhatsApp button</div>
+                    <div className="plan-feature">Product name auto</div>
+                    <div className="plan-feature">Price auto detect</div>
+                    <div className="plan-feature">Image + Link auto</div>
+                    <div className="plan-feature">Secret ID included</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="card" style={{ background: "#f8fafc", marginTop: 4, boxShadow: "none" }}>
+                <div className="card-title">💰 Payment Status</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className={`btn-pay${form.payment === "paid" ? " paid" : ""}`} onClick={() => setForm(f => ({ ...f, payment: "paid" }))}>✅ Paid</button>
+                  <button className={`btn-pay${form.payment === "pending" ? " pend" : ""}`} onClick={() => setForm(f => ({ ...f, payment: "pending" }))}>⏳ Pending</button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button className="btn-g" onClick={() => goTo("dashboard")}>Cancel</button>
+                <button className="btn-p" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : view === "add" ? "Add Website" : "Save Changes"}</button>
+              </div>
+            </div>
+          )}
+
+          {/* SCRIPT */}
+          {view === "script" && sel && (
+            <div className="card">
+              <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 12, flexWrap: "wrap" }}>
+                {["script", "messages", "settings"].map(t => (
+                  <button key={t} className={`tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
+                    {t === "script" ? "📋 Script" : t === "messages" ? "💬 Messages" : "⚙️ Settings"}
+                  </button>
+                ))}
+              </div>
+
+              {tab === "script" && (<>
+                {sel.payment === "pending" && <div className="alert-w">⚠️ Payment pending — script inactive.</div>}
+                <div className={`plan-box ${sel.plan === "pro" ? "pro" : "basic"}`}>
+                  {sel.plan === "pro" ? (
+                    <><b>🚀 Pro Plan Script</b> — Product name + Price + Image + Link + Secret ID automatic</>
+                  ) : (
+                    <><b>🔵 Basic Plan Script</b> — Sirf inquiry message — "I am interested in your products"</>
+                  )}
+                </div>
+                <div className="success-box">⚡ Real-time control — Dashboard se toggle → foran effect! Client sirf ek baar paste kare.</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{sel.enabled && sel.payment === "paid" ? "✅ Active" : "⛔ Inactive"} — {sel.plan === "pro" ? "🚀 Pro" : "🔵 Basic"}</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Paste before &lt;/body&gt; — sirf ek baar!</div>
+                  </div>
+                  <button className="btn-p" style={copied ? { background: "#16a34a" } : {}} onClick={copyScript}>{copied ? "✓ Copied!" : "📋 Copy Script"}</button>
+                </div>
+                <pre className="script-box">{genScript(sel)}</pre>
+              </>)}
+
+              {tab === "messages" && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", marginBottom: 16 }}>💬 WhatsApp Message Preview</div>
+
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>🔵 Basic Plan — Har page pe yeh message:</div>
+                  <div className="msg-preview basic">
+                    Assalam-o-Alaikum!{"\n\n"}
+                    I am interested in your products.{"\n\n"}
+                    Store: {sel.url}
+                  </div>
+
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8, marginTop: 20 }}>🚀 Pro Plan — Homepage pe:</div>
+                  <div className="msg-preview pro">
+                    Assalam-o-Alaikum!{"\n\n"}
+                    I am visiting your store:{"\n"}
+                    {sel.url}
+                  </div>
+
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8, marginTop: 12 }}>🚀 Pro Plan — Product page pe:</div>
+                  <div className="msg-preview pro">
+                    Assalam-o-Alaikum, I want to order this product:{"\n\n"}
+                    <b>*Product:*</b> Product Name (auto){"\n"}
+                    <b>*Price:*</b> PKR 2000 / AED 90 / $25 (auto){"\n"}
+                    {sel.secretKey && <><b>*Secret ID:*</b> {sel.secretKey}{"\n"}</>}
+                    <b>*Link:*</b> {sel.url}/product-page
+                  </div>
+                </div>
+              )}
+
+              {tab === "settings" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* Plan change */}
+                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 11, padding: "14px 16px" }}>
+                    <div style={{ color: "#1e293b", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>📦 Plan Change</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className={`plan-btn${sel.plan === "basic" ? " basic-active" : ""}`} onClick={() => setPlan(sel.id, "basic")}>🔵 Basic</button>
+                      <button className={`plan-btn${sel.plan === "pro" ? " pro-active" : ""}`} onClick={() => setPlan(sel.id, "pro")}>🚀 Pro</button>
+                    </div>
+                  </div>
+                  {/* Enable/Disable */}
+                  <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 11, padding: "14px 16px" }}>
+                    <div style={{ color: "#1e293b", fontWeight: 700, fontSize: 13, marginBottom: 8 }}>⚡ Real-time Toggle</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <button className={`toggle-btn ${sel.enabled ? "on" : "off"}`} onClick={() => { toggleSite(sel); setSel(s => ({ ...s, enabled: !s.enabled })); }} />
+                      <span style={{ fontWeight: 700, color: sel.enabled ? "#16a34a" : "#94a3b8" }}>{sel.enabled ? "✅ Button ON" : "⏸ Button OFF"}</span>
+                    </div>
+                  </div>
+                  {[
+                    { t: "Payment Status", d: "Pending → script band + WA reminder", el: <div style={{ display: "flex", gap: 8 }}><button className={`btn-pay${sel.payment === "paid" ? " paid" : ""}`} onClick={() => setPayment(sel.id, "paid")}>✅ Paid</button><button className={`btn-pay${sel.payment === "pending" ? " pend" : ""}`} onClick={() => setPayment(sel.id, "pending")}>⏳ Pending</button></div> },
+                    { t: "WA Reminder", d: "Client ko payment reminder bhejein", el: <button className="btn-ver" onClick={() => window.open(waReminderMsg(sel), "_blank")}>📤 Send</button> },
+                  ].map(row => (
+                    <div key={row.t} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 11, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <div><div style={{ color: "#1e293b", fontWeight: 600, fontSize: 13 }}>{row.t}</div><div style={{ color: "#94a3b8", fontSize: 11, marginTop: 3 }}>{row.d}</div></div>
+                      {row.el}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
