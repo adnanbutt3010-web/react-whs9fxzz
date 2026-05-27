@@ -5,9 +5,55 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v11_session";
+const SESSION_KEY = "wbm_v12_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
+
+// Country codes mapping
+const COUNTRY_CODES = {
+  "+92": { name: "Pakistan", flag: "🇵🇰", code: "PK" },
+  "+971": { name: "UAE", flag: "🇦🇪", code: "AE" },
+  "+966": { name: "Saudi Arabia", flag: "🇸🇦", code: "SA" },
+  "+965": { name: "Kuwait", flag: "🇰🇼", code: "KW" },
+  "+968": { name: "Oman", flag: "🇴🇲", code: "OM" },
+  "+973": { name: "Bahrain", flag: "🇧🇭", code: "BH" },
+  "+974": { name: "Qatar", flag: "🇶🇦", code: "QA" },
+  "+1": { name: "USA/Canada", flag: "🇺🇸", code: "US" },
+  "+44": { name: "UK", flag: "🇬🇧", code: "GB" },
+  "+91": { name: "India", flag: "🇮🇳", code: "IN" },
+  "+90": { name: "Turkey", flag: "🇹🇷", code: "TR" },
+  "+61": { name: "Australia", flag: "🇦🇺", code: "AU" },
+  "+49": { name: "Germany", flag: "🇩🇪", code: "DE" },
+  "+33": { name: "France", flag: "🇫🇷", code: "FR" },
+  "+39": { name: "Italy", flag: "🇮🇹", code: "IT" },
+  "+34": { name: "Spain", flag: "🇪🇸", code: "ES" },
+  "+31": { name: "Netherlands", flag: "🇳🇱", code: "NL" },
+  "+86": { name: "China", flag: "🇨🇳", code: "CN" },
+  "+81": { name: "Japan", flag: "🇯🇵", code: "JP" },
+  "+82": { name: "South Korea", flag: "🇰🇷", code: "KR" },
+  "+60": { name: "Malaysia", flag: "🇲🇾", code: "MY" },
+  "+65": { name: "Singapore", flag: "🇸🇬", code: "SG" },
+  "+20": { name: "Egypt", flag: "🇪🇬", code: "EG" },
+  "+234": { name: "Nigeria", flag: "🇳🇬", code: "NG" },
+  "+27": { name: "South Africa", flag: "🇿🇦", code: "ZA" },
+  "+55": { name: "Brazil", flag: "🇧🇷", code: "BR" },
+  "+52": { name: "Mexico", flag: "🇲🇽", code: "MX" },
+};
+
+function detectCountryFromNumber(num) {
+  const clean = num.replace(/\s/g, "");
+  // Try longest prefix first
+  const prefixes = Object.keys(COUNTRY_CODES).sort((a, b) => b.length - a.length);
+  for (const prefix of prefixes) {
+    if (clean.startsWith(prefix)) return COUNTRY_CODES[prefix];
+  }
+  return null;
+}
+
+function getNumberInfo(num) {
+  const country = detectCountryFromNumber(num);
+  return country || { name: "Other", flag: "🌍", code: "XX" };
+}
 
 // ─── SUPABASE ─────────────────────────────────────────────
 const sb = {
@@ -68,7 +114,7 @@ function getSession() {
 function setSession() { localStorage.setItem(SESSION_KEY, JSON.stringify({ time: Date.now() })); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
-// ─── SCRIPT GENERATOR ─────────────────────────────────────
+// ─── SCRIPT GENERATOR v12 ─────────────────────────────────
 function genScript(site) {
   if (!site.enabled || site.payment !== "paid") {
     return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){\n  var el=document.getElementById("wbm-fab");\n  if(el)el.remove();\n})();\n<\/script>`;
@@ -78,7 +124,7 @@ function genScript(site) {
   const secret = site.secretKey ? `"${site.secretKey}"` : "null";
   const isBasic = site.plan === "basic";
 
-  return `<!-- WBManager | ${site.name} | ${isBasic ? "BASIC" : "PRO"} Plan | v11 -->
+  return `<!-- WBManager Geo | ${site.name} | ${isBasic ? "BASIC" : "PRO"} | v12 -->
 <script>
 (function(){
   var CFG={
@@ -86,20 +132,80 @@ function genScript(site) {
     numbers:${nums},
     key:${secret},
     siteUrl:"${site.url}",
-    plan:"${site.plan || "basic"}",
+    plan:"${site.plan||"basic"}",
     supabaseUrl:"${SUPABASE_URL}",
     supabaseKey:"${SUPABASE_KEY}"
   };
 
-  // Check status from Supabase
+  // ── Geo Routing: Group numbers by country code ──────────
+  function groupByCountry(numbers){
+    var groups={};
+    numbers.forEach(function(num){
+      var clean=num.replace(/\\s/g,"");
+      // Detect country prefix (longest match first)
+      var prefixes=["+974","+973","+968","+966","+965","+971","+234","+234",
+        "+92","+91","+90","+86","+82","+81","+65","+61","+60","+55","+52",
+        "+49","+44","+39","+34","+33","+31","+27","+20","+1"];
+      var matched=false;
+      for(var i=0;i<prefixes.length;i++){
+        if(clean.startsWith(prefixes[i])){
+          if(!groups[prefixes[i]])groups[prefixes[i]]=[];
+          groups[prefixes[i]].push(num);
+          matched=true; break;
+        }
+      }
+      if(!matched){
+        if(!groups["other"])groups["other"]=[];
+        groups["other"].push(num);
+      }
+    });
+    return groups;
+  }
+
+  // ── Detect visitor country via IP ───────────────────────
+  function getVisitorCountry(cb){
+    fetch("https://ipapi.co/json/",{signal:AbortSignal.timeout(3000)})
+      .then(function(r){return r.json();})
+      .then(function(data){cb(data.country_calling_code||null);})
+      .catch(function(){cb(null);});
+  }
+
+  // ── Pick best number based on visitor country ───────────
+  function pickNumber(visitorCallingCode){
+    var groups=groupByCountry(CFG.numbers);
+    var allPrefixes=Object.keys(groups);
+    // Find home country (most numbers = home)
+    var homePfx=allPrefixes[0];
+    var maxLen=0;
+    allPrefixes.forEach(function(p){
+      if((groups[p]||[]).length>maxLen){maxLen=(groups[p]||[]).length;homePfx=p;}
+    });
+    // Match visitor country
+    if(visitorCallingCode){
+      var code=visitorCallingCode.startsWith("+")?visitorCallingCode:"+"+visitorCallingCode;
+      if(groups[code]&&groups[code].length>0){
+        // Visitor country found — pick random from that group
+        var arr=groups[code];
+        return arr[Math.floor(Math.random()*arr.length)];
+      }
+    }
+    // Fallback: home country numbers
+    if(groups[homePfx]&&groups[homePfx].length>0){
+      var arr2=groups[homePfx];
+      return arr2[Math.floor(Math.random()*arr2.length)];
+    }
+    // Last fallback: any random number
+    return CFG.numbers[Math.floor(Math.random()*CFG.numbers.length)];
+  }
+
+  // ── Check Supabase status ───────────────────────────────
   function checkStatus(cb){
     fetch(CFG.supabaseUrl+"/rest/v1/sites?id=eq."+CFG.siteId+"&select=enabled,payment,plan",{
       headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}
-    }).then(r=>r.json()).then(data=>{
-      if(data&&data[0]){
-        cb(data[0].enabled===true&&data[0].payment==="paid", data[0].plan||"basic");
-      } else cb(false,"basic");
-    }).catch(()=>cb(true, CFG.plan));
+    }).then(function(r){return r.json();}).then(function(data){
+      if(data&&data[0])cb(data[0].enabled===true&&data[0].payment==="paid",data[0].plan||"basic");
+      else cb(false,"basic");
+    }).catch(function(){cb(true,CFG.plan);});
   }
 
   var WA_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.533 5.853L0 24l6.305-1.508A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.371l-.36-.214-3.732.893.924-3.638-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>';
@@ -115,30 +221,13 @@ function genScript(site) {
     "@keyframes wbm-glow{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.55);}50%{box-shadow:0 4px 36px rgba(37,211,102,.9);}}";
   document.head.appendChild(st);
 
-  function pickNum(){return CFG.numbers[Math.floor(Math.random()*CFG.numbers.length)];}
-  function waLink(msg){return "https://wa.me/"+pickNum().replace(/\\D/g,"")+"?text="+encodeURIComponent(msg);}
-
-  // ── BASIC PLAN: Sirf inquiry message ─────────────────────
-  function buildBasicMsg(){
-    var link=(document.querySelector('link[rel="canonical"]')||{}).href||location.href;
-    return "Assalam-o-Alaikum!\\n\\nI am interested in your products.\\n\\nStore: "+CFG.siteUrl;
-  }
-
-  // ── PRO PLAN: Full product details ──────────────────────
-  function isSinglePage(){
-    var cards=document.querySelectorAll(".post-outer,.hentry,li.product,.product-card");
-    if(cards.length>1)return false;
-    var canonical=(document.querySelector('link[rel="canonical"]')||{}).href||"";
-    var isHome=(canonical===CFG.siteUrl||canonical===CFG.siteUrl+"/"||location.pathname==="/"||location.pathname==="");
-    return !isHome;
-  }
-
+  // ── Price Detection (all currencies) ───────────────────
   function getPrice(){
     var meta=document.querySelector('[property="product:price:amount"],[itemprop="price"]');
     if(meta){var cur=document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"]');return ((cur?cur.content||cur.innerText:"")||"")+" "+(meta.content||meta.innerText||"").replace(/[^0-9.,]/g,"");}
     var body=document.body.innerText||"";
-    var pats=[/Price[:\\s]+PKR[\\s]?([\\d,]+)/i,/PKR[\\s]?([\\d,]+)/i,/Rs\\.?[\\s]?([\\d,]+)/i,/\\$\\s?([\\d,]+\\.?\\d{0,2})/,/£\\s?([\\d,]+\\.?\\d{0,2})/,/€\\s?([\\d,]+[.,]?\\d{0,2})/,/₹\\s?([\\d,]+)/,/AED[\\s]?([\\d,]+)/i,/SAR[\\s]?([\\d,]+)/i,/KWD[\\s]?([\\d,]+\\.?\\d{0,3})/i,/QAR[\\s]?([\\d,]+)/i,/OMR[\\s]?([\\d,]+\\.?\\d{0,3})/i,/Price[:\\s]+([\\d,]+\\.?\\d{0,2})/i];
-    var syms=["PKR ","PKR ","Rs. ","$ ","£ ","€ ","₹ ","AED ","SAR ","KWD ","QAR ","OMR ",""];
+    var pats=[/Price[:\\s]+PKR[\\s]?([\\d,]+)/i,/PKR[\\s]?([\\d,]+)/i,/Rs\\.?[\\s]?([\\d,]+)/i,/\\$\\s?([\\d,]+\\.?\\d{0,2})/,/£\\s?([\\d,]+\\.?\\d{0,2})/,/€\\s?([\\d,]+[.,]?\\d{0,2})/,/₹\\s?([\\d,]+)/,/AED[\\s]?([\\d,]+)/i,/SAR[\\s]?([\\d,]+)/i,/KWD[\\s]?([\\d,]+\\.?\\d{0,3})/i,/QAR[\\s]?([\\d,]+)/i,/OMR[\\s]?([\\d,]+\\.?\\d{0,3})/i,/BHD[\\s]?([\\d,]+\\.?\\d{0,3})/i,/Price[:\\s]+([\\d,]+\\.?\\d{0,2})/i];
+    var syms=["PKR ","PKR ","Rs. ","$ ","£ ","€ ","₹ ","AED ","SAR ","KWD ","QAR ","OMR ","BHD ",""];
     for(var i=0;i<pats.length;i++){var m=body.match(pats[i]);if(m&&m[1])return (syms[i]||"")+m[1];}
     return "";
   }
@@ -161,8 +250,19 @@ function genScript(site) {
     return c?c.href:location.href.split("?")[0].split("#")[0];
   }
 
-  function buildProMsg(){
-    if(!isSinglePage()) return "Assalam-o-Alaikum!\\n\\nI am visiting your store:\\n"+getLink();
+  function isSinglePage(){
+    var cards=document.querySelectorAll(".post-outer,.hentry,li.product,.product-card");
+    if(cards.length>1)return false;
+    var canonical=(document.querySelector('link[rel="canonical"]')||{}).href||"";
+    var isHome=(canonical===CFG.siteUrl||canonical===CFG.siteUrl+"/"||location.pathname==="/"||location.pathname==="");
+    return !isHome;
+  }
+
+  function buildMsg(plan){
+    if(plan==="basic"){
+      return "Assalam-o-Alaikum!\\n\\nI am interested in your products.\\n\\nStore: "+CFG.siteUrl;
+    }
+    if(!isSinglePage())return "Assalam-o-Alaikum!\\n\\nI am visiting your store:\\n"+getLink();
     var title=getTitle(),price=getPrice(),link=getLink();
     var msg="Assalam-o-Alaikum, I want to order this product:\\n\\n";
     msg+="*Product:* "+title+"\\n";
@@ -172,12 +272,14 @@ function genScript(site) {
     return msg;
   }
 
-  function addFAB(plan){
+  function addFAB(number,plan){
     if(document.getElementById("wbm-fab"))return;
-    var msg=plan==="pro"?buildProMsg():buildBasicMsg();
+    var msg=buildMsg(plan);
+    var cleanNum=number.replace(/\\D/g,"");
     var wrap=document.createElement("div");wrap.id="wbm-fab";
     var a=document.createElement("a");
-    a.href=waLink(msg);a.target="_blank";a.rel="noopener noreferrer";
+    a.href="https://wa.me/"+cleanNum+"?text="+encodeURIComponent(msg);
+    a.target="_blank";a.rel="noopener noreferrer";
     a.setAttribute("aria-label","Chat on WhatsApp");
     a.innerHTML=WA_SVG;
     wrap.appendChild(a);document.body.appendChild(wrap);
@@ -187,12 +289,22 @@ function genScript(site) {
 
   function init(){
     checkStatus(function(active,plan){
-      if(active)addFAB(plan); else removeFAB();
+      if(!active){removeFAB();return;}
+      // Get visitor country then pick best number
+      getVisitorCountry(function(callingCode){
+        var number=pickNumber(callingCode);
+        addFAB(number,plan);
+      });
     });
+    // Recheck every 5 minutes
     setInterval(function(){
       checkStatus(function(active,plan){
         removeFAB();
-        if(active)addFAB(plan);
+        if(!active)return;
+        getVisitorCountry(function(callingCode){
+          var number=pickNumber(callingCode);
+          addFAB(number,plan);
+        });
       });
     },5*60*1000);
   }
@@ -201,12 +313,12 @@ function genScript(site) {
   else setTimeout(init,300);
 })();
 <\/script>
-<!-- End WBManager v11 -->`;
+<!-- End WBManager Geo v12 -->`;
 }
 
 function waReminderMsg(site) {
   const n = site.numbers[0].replace(/\D/g, "");
-  const msg = `Assalam o Alaikum! 👋\n\n⚠️ *WhatsApp Button Service — Payment Pending*\n\nAapki website *${site.url}* ki service ki payment pending hai.\n\nKripya jald payment karein ta-k button dubara active ho sake.\n\nShukriya! 🙏\n— WBManager Team`;
+  const msg = `Assalam o Alaikum! 👋\n\n⚠️ *WhatsApp Button Service — Payment Pending*\n\nAapki website *${site.url}* ki service ki payment pending hai.\n\nKripya jald payment karein.\n\nShukriya! 🙏\n— WBManager Team`;
   return `https://wa.me/${n}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -286,8 +398,14 @@ body{background:#f0f4f8;font-family:'DM Sans','Segoe UI',sans-serif;color:#1e293
 .toggle-btn.on::after{left:23px;}
 .toggle-btn.off::after{left:3px;}
 .live-badge{background:#dcfce7;color:#16a34a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid #86efac;margin-left:6px;}
+.geo-badge{background:#fdf4ff;color:#7c3aed;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid #e9d5ff;margin-left:4px;}
 
-/* Plan comparison */
+/* Number groups */
+.num-group{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:8px;}
+.num-group-header{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-weight:700;font-size:12px;color:#1e293b;}
+.num-tag{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;color:#475569;margin:2px;}
+
+/* Plan cards */
 .plan-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
 .plan-card{border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;border:2px solid transparent;}
 .plan-card.basic{background:#f0f9ff;border-color:#bae6fd;}
@@ -336,19 +454,12 @@ function Login({ onLogin }) {
     if (u.trim() === ADMIN_USER && p === savedPass) { setSession(); onLogin(); }
     else setErr("Username ya password galat hai!");
   }
-
-  function doRecover() {
-    setErr("");
-    if (rec.trim() === RECOVERY_CODE) setMode("newpass");
-    else setErr("Recovery code galat hai!");
-  }
-
+  function doRecover() { setErr(""); if (rec.trim() === RECOVERY_CODE) setMode("newpass"); else setErr("Recovery code galat hai!"); }
   function doNewPass() {
     setErr("");
-    if (np.length < 6) { setErr("Password kam az kam 6 characters!"); return; }
+    if (np.length < 6) { setErr("Password min 6 characters!"); return; }
     if (np !== cp) { setErr("Passwords match nahi!"); return; }
-    localStorage.setItem(ADMIN_PASS_KEY, np);
-    setMode("login"); setErr("");
+    localStorage.setItem(ADMIN_PASS_KEY, np); setMode("login");
     alert("✅ Password change ho gaya!");
   }
 
@@ -358,8 +469,9 @@ function Login({ onLogin }) {
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ width: 64, height: 64, background: "#dcfce7", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 12px" }}>💬</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "#1e293b" }}>WBManager</div>
-          <div style={{ display: "inline-block", background: "#dcfce7", color: "#16a34a", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 20, marginTop: 8, border: "1px solid #86efac" }}>
-            {mode === "login" ? "ADMIN PORTAL v11.0" : mode === "recover" ? "RECOVERY" : "NEW PASSWORD"}
+          <div style={{ display: "inline-flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+            <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, border: "1px solid #86efac" }}>v12.0</span>
+            <span style={{ background: "#fdf4ff", color: "#7c3aed", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, border: "1px solid #e9d5ff" }}>🌍 GEO ROUTING</span>
           </div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
@@ -377,25 +489,46 @@ function Login({ onLogin }) {
             <span onClick={() => { setMode("recover"); setErr(""); }} style={{ fontSize: 12, color: "#16a34a", cursor: "pointer", fontWeight: 600 }}>🔑 Forgot Password?</span>
           </div>
           <button className="btn-p" style={{ width: "100%", padding: 13, fontSize: 15, borderRadius: 10 }} onClick={doLogin}>Login →</button>
-          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#0369a1" }}>🕐 Auto-logout: 30 minutes idle</div>
+          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#0369a1" }}>🕐 Auto-logout: 30 min idle</div>
         </>)}
-
         {mode === "recover" && (<>
-          <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>
-            🔑 Recovery code:<br/><b style={{ fontFamily: "monospace" }}>WBM-RECOVERY-2026-ADNAN</b>
-          </div>
+          <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>🔑 Recovery code: <b style={{ fontFamily: "monospace" }}>WBM-RECOVERY-2026-ADNAN</b></div>
           <div className="fg"><label className="lbl">RECOVERY CODE</label><input className="inp" placeholder="WBM-RECOVERY-..." value={rec} onChange={e => { setRec(e.target.value); setErr(""); }} /></div>
           <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10, marginBottom: 10 }} onClick={doRecover}>Verify →</button>
           <button className="btn-g" style={{ width: "100%", padding: 10, borderRadius: 10 }} onClick={() => { setMode("login"); setErr(""); }}>← Back</button>
         </>)}
-
         {mode === "newpass" && (<>
           <div className="success-box">✅ Verified! Naya password set karein.</div>
-          <div className="fg"><label className="lbl">NEW PASSWORD</label><input className="inp" type="password" placeholder="Min 6 characters" value={np} onChange={e => { setNp(e.target.value); setErr(""); }} /></div>
-          <div className="fg" style={{ marginBottom: 20 }}><label className="lbl">CONFIRM PASSWORD</label><input className="inp" type="password" placeholder="Dobara likho" value={cp} onChange={e => { setCp(e.target.value); setErr(""); }} /></div>
+          <div className="fg"><label className="lbl">NEW PASSWORD</label><input className="inp" type="password" value={np} onChange={e => { setNp(e.target.value); setErr(""); }} /></div>
+          <div className="fg" style={{ marginBottom: 20 }}><label className="lbl">CONFIRM</label><input className="inp" type="password" value={cp} onChange={e => { setCp(e.target.value); setErr(""); }} /></div>
           <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10 }} onClick={doNewPass}>Set Password →</button>
         </>)}
       </div>
+    </div>
+  );
+}
+
+// ─── NUMBER GROUPS DISPLAY ────────────────────────────────
+function NumberGroups({ numbers }) {
+  const groups = {};
+  numbers.forEach(num => {
+    const info = getNumberInfo(num);
+    const key = info.code;
+    if (!groups[key]) groups[key] = { info, nums: [] };
+    groups[key].nums.push(num);
+  });
+  return (
+    <div>
+      {Object.values(groups).map(g => (
+        <div key={g.info.code} className="num-group">
+          <div className="num-group-header">
+            <span>{g.info.flag}</span>
+            <span>{g.info.name}</span>
+            <span style={{ color: "#94a3b8", fontWeight: 400 }}>({g.nums.length} number{g.nums.length > 1 ? "s" : ""})</span>
+          </div>
+          <div>{g.nums.map(n => <span key={n} className="num-tag">📱 {n}</span>)}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -419,10 +552,11 @@ export default function App() {
   const [verifying, setVerifying] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
   const [isWide, setIsWide] = useState(window.innerWidth >= 900);
+  const [showNumGroups, setShowNumGroups] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (loggedIn && !getSession()) { setLoggedIn(false); toast_("Session expire — dobara login karein", "warn"); }
+      if (loggedIn && !getSession()) { setLoggedIn(false); }
       if (loggedIn) setSession();
     }, 60000);
     return () => clearInterval(interval);
@@ -475,7 +609,7 @@ export default function App() {
     const newEnabled = !site.enabled;
     setSites(p => p.map(s => s.id === site.id ? { ...s, enabled: newEnabled } : s));
     const res = await sb.updateSite(site.id, { enabled: newEnabled });
-    if (res !== null) toast_(newEnabled ? "✅ Button ON — Client site pe visible!" : "⏸ Button OFF — Foran gayab!");
+    if (res !== null) toast_(newEnabled ? "✅ Button ON!" : "⏸ Button OFF — Foran gayab!");
     else { setSites(p => p.map(s => s.id === site.id ? { ...s, enabled: site.enabled } : s)); toast_("Error!", "err"); }
   }
 
@@ -500,12 +634,11 @@ export default function App() {
     setVerifying(id);
     await sb.updateSite(id, { verified: true });
     setSites(p => p.map(s => s.id === id ? { ...s, verified: true } : s));
-    setVerifying(null); toast_("Domain verified! ✅");
+    setVerifying(null); toast_("Verified! ✅");
   }
 
   async function doDelete(id) {
-    await sb.deleteSite(id);
-    setSites(p => p.filter(s => s.id !== id));
+    await sb.deleteSite(id); setSites(p => p.filter(s => s.id !== id));
     setDelItem(null); toast_("Remove ho gayi!", "err");
   }
 
@@ -533,7 +666,6 @@ export default function App() {
   return (
     <div className="wbm-root">
       {toast && <div className="toast" style={{ background: toastBg[toast.t] || toastBg.ok }}>{toast.msg}</div>}
-
       {delItem && (
         <div className="modal-ov">
           <div className="modal">
@@ -547,29 +679,31 @@ export default function App() {
           </div>
         </div>
       )}
-
       <div className={`sidebar-overlay${navOpen ? " show" : ""}`} onClick={() => setNavOpen(false)} />
 
       {/* SIDEBAR */}
       <aside className={`sidebar${!isWide && !navOpen ? " hidden" : ""}`}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "20px 16px 18px", borderBottom: "1px solid #e2e8f0" }}>
-          <div style={{ width: 40, height: 40, background: "#dcfce7", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>💬</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 14px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ width: 38, height: 38, background: "#dcfce7", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>💬</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>WBManager</div>
-            <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 700 }}>v11.0 <span style={{ background: "#dcfce7", padding: "1px 6px", borderRadius: 8, border: "1px solid #86efac" }}>LIVE</span></div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b" }}>WBManager</div>
+            <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+              <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, border: "1px solid #86efac" }}>v12 LIVE</span>
+              <span style={{ background: "#fdf4ff", color: "#7c3aed", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, border: "1px solid #e9d5ff" }}>🌍 GEO</span>
+            </div>
           </div>
           {!isWide && <button onClick={() => setNavOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}>✕</button>}
         </div>
         <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 3 }}>
-          <button className={`nav-btn${view === "dashboard" ? " active" : ""}`} onClick={() => goTo("dashboard")}><span style={{ fontSize: 18 }}>⊞</span> Dashboard</button>
-          <button className={`nav-btn${view === "add" ? " active" : ""}`} onClick={openAdd}><span style={{ fontSize: 18 }}>＋</span> Add Website</button>
+          <button className={`nav-btn${view === "dashboard" ? " active" : ""}`} onClick={() => goTo("dashboard")}><span>⊞</span> Dashboard</button>
+          <button className={`nav-btn${view === "add" ? " active" : ""}`} onClick={openAdd}><span>＋</span> Add Website</button>
         </nav>
-        <div style={{ padding: "14px 16px", borderTop: "1px solid #e2e8f0" }}>
-          <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 10 }}>Quick Stats</div>
+        <div style={{ padding: "12px 14px", borderTop: "1px solid #e2e8f0" }}>
+          <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 8 }}>Quick Stats</div>
           {[["🔵", `${basicC} Basic`, "#0369a1"], ["🚀", `${proC} Pro`, "#d97706"], ["✅", `${paidC} Paid`, "#16a34a"], ["⏳", `${pendC} Pending`, "#dc2626"]].map(([ic, lb, cl]) => (
-            <div key={lb} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: cl, marginBottom: 7, fontWeight: 600 }}>{ic} {lb}</div>
+            <div key={lb} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: cl, marginBottom: 6, fontWeight: 600 }}>{ic} {lb}</div>
           ))}
-          <button onClick={logout} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 9, padding: "9px", cursor: "pointer", fontSize: 13, fontWeight: 600, marginTop: 10 }}>🚪 Logout</button>
+          <button onClick={logout} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 9, padding: "8px", cursor: "pointer", fontSize: 12, fontWeight: 600, marginTop: 8 }}>🚪 Logout</button>
         </div>
       </aside>
 
@@ -578,11 +712,11 @@ export default function App() {
         <div className="topbar">
           {!isWide && <button className="menu-btn btn-g" style={{ padding: "8px 12px", fontSize: 18 }} onClick={() => setNavOpen(true)}>☰</button>}
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
               {{ dashboard: "Dashboard", add: "Add Website", edit: "Edit Website", script: "Embed Script" }[view]}
-              {view === "dashboard" && <span className="live-badge">● LIVE</span>}
+              {view === "dashboard" && <><span className="live-badge">● LIVE</span><span className="geo-badge">🌍 GEO</span></>}
             </div>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{view === "dashboard" ? `${activeC} active · ${basicC} Basic · ${proC} Pro` : sel?.name || "Naya website"}</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{view === "dashboard" ? `${activeC} active · ${basicC} Basic · ${proC} Pro · Geo Routing ON` : sel?.name || "Naya website"}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             {view === "dashboard" && <button className="btn-g" style={{ fontSize: 12, padding: "8px 12px" }} onClick={loadSites}>🔄</button>}
@@ -602,6 +736,15 @@ export default function App() {
                   <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.lb}</span>
                 </div>
               ))}
+            </div>
+
+            {/* Geo Info Box */}
+            <div style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#6b21a8", display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 22 }}>🌍</span>
+              <div>
+                <b>Geo-based Routing Active!</b><br/>
+                <span style={{ fontSize: 12, opacity: .8 }}>Customer ka country IP se detect hoga → usi country ka number use hoga → baaki countries ke liye home country numbers! Sab automatic!</span>
+              </div>
             </div>
 
             {loading ? (
@@ -639,12 +782,21 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Info chips */}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {[`📱 ${site.numbers.length} number`, `👆 ${site.clicks || 0} clicks`, `📅 ${fmtDate(site.installedAt)}`, `🕐 ${timeAgo(site.lastActive)}`].map(c => <span key={c} className="chip">{c}</span>)}
+                        {/* Numbers with country groups */}
+                        <div>
+                          <button onClick={() => setShowNumGroups(showNumGroups === site.id ? null : site.id)}
+                            style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, color: "#0369a1", fontWeight: 600 }}>
+                            🌍 {site.numbers.length} Number{site.numbers.length > 1 ? "s" : ""} — Country Groups {showNumGroups === site.id ? "▲" : "▼"}
+                          </button>
+                          {showNumGroups === site.id && <div style={{ marginTop: 8 }}><NumberGroups numbers={site.numbers} /></div>}
                         </div>
 
-                        {/* Plan toggle */}
+                        {/* Info chips */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {[`👆 ${site.clicks || 0} clicks`, `📅 ${fmtDate(site.installedAt)}`, `🕐 ${timeAgo(site.lastActive)}`].map(c => <span key={c} className="chip">{c}</span>)}
+                        </div>
+
+                        {/* Plan */}
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Plan:</span>
                           <button className={`plan-btn${site.plan === "basic" ? " basic-active" : ""}`} onClick={() => setPlan(site.id, "basic")}>🔵 Basic</button>
@@ -684,18 +836,33 @@ export default function App() {
               </div>
 
               <div className="fg">
-                <label className="lbl">WhatsApp Numbers *</label>
-                {form.numbers.map((n, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                    <span>📱</span>
-                    <input className="inp" style={{ flex: 1 }} placeholder="+92 300 1234567" value={n} onChange={e => { const a = [...form.numbers]; a[i] = e.target.value; setForm(f => ({ ...f, numbers: a })); }} />
-                    {form.numbers.length > 1 && <button onClick={() => setForm(f => ({ ...f, numbers: f.numbers.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "9px 12px", cursor: "pointer", fontWeight: 700 }}>✕</button>}
-                  </div>
-                ))}
+                <label className="lbl">WhatsApp Numbers * <span style={{ color: "#7c3aed", fontSize: 11 }}>🌍 Country code se auto Geo Routing!</span></label>
+                <div style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#6b21a8", marginBottom: 10 }}>
+                  💡 Pakistan: <b>+92</b> | UAE: <b>+971</b> | Saudi: <b>+966</b> | Kuwait: <b>+965</b> | USA: <b>+1</b> | UK: <b>+44</b>
+                </div>
+                {form.numbers.map((n, i) => {
+                  const info = n.trim() ? getNumberInfo(n) : null;
+                  return (
+                    <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: 18 }}>{info ? info.flag : "📱"}</span>
+                      <input className="inp" style={{ flex: 1 }} placeholder="+92 300 1234567" value={n} onChange={e => { const a = [...form.numbers]; a[i] = e.target.value; setForm(f => ({ ...f, numbers: a })); }} />
+                      {info && <span style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600, whiteSpace: "nowrap" }}>{info.name}</span>}
+                      {form.numbers.length > 1 && <button onClick={() => setForm(f => ({ ...f, numbers: f.numbers.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "9px 12px", cursor: "pointer", fontWeight: 700 }}>✕</button>}
+                    </div>
+                  );
+                })}
                 <button onClick={() => setForm(f => ({ ...f, numbers: [...f.numbers, ""] }))} style={{ background: "transparent", border: "2px dashed #e2e8f0", color: "#94a3b8", borderRadius: 9, padding: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, width: "100%" }}>+ Add Number</button>
               </div>
 
-              {/* Plan Selection */}
+              {/* Preview country groups */}
+              {form.numbers.filter(n => n.trim()).length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", marginBottom: 8 }}>🌍 Geo Routing Preview:</div>
+                  <NumberGroups numbers={form.numbers.filter(n => n.trim())} />
+                </div>
+              )}
+
+              {/* Plan */}
               <div className="fg">
                 <label className="lbl">SELECT PLAN *</label>
                 <div className="plan-compare">
@@ -703,25 +870,25 @@ export default function App() {
                     <div className="plan-card-title">🔵 Basic Plan</div>
                     <div className="plan-price">PKR 499<span style={{ fontSize: 12 }}>/mo</span></div>
                     <div className="plan-feature">Floating WhatsApp button</div>
-                    <div className="plan-feature">Sirf inquiry message</div>
-                    <div className="plan-feature">Real-time ON/OFF control</div>
+                    <div className="plan-feature">Inquiry message only</div>
+                    <div className="plan-feature">🌍 Geo Routing</div>
+                    <div className="plan-feature">Real-time ON/OFF</div>
                     <div className="plan-feature no">Product details nahi</div>
-                    <div className="plan-feature no">Price auto detect nahi</div>
                   </div>
                   <div className={`plan-card pro${form.plan === "pro" ? " selected" : ""}`} onClick={() => setForm(f => ({ ...f, plan: "pro" }))}>
                     <div className="plan-card-title">🚀 Pro Plan</div>
                     <div className="plan-price">PKR 999<span style={{ fontSize: 12 }}>/mo</span></div>
                     <div className="plan-feature">Floating WhatsApp button</div>
+                    <div className="plan-feature">🌍 Geo Routing</div>
                     <div className="plan-feature">Product name auto</div>
                     <div className="plan-feature">Price auto detect</div>
-                    <div className="plan-feature">Image + Link auto</div>
-                    <div className="plan-feature">Secret ID included</div>
+                    <div className="plan-feature">Image + Link + Secret ID</div>
                   </div>
                 </div>
               </div>
 
               {/* Payment */}
-              <div className="card" style={{ background: "#f8fafc", marginTop: 4, boxShadow: "none" }}>
+              <div className="card" style={{ background: "#f8fafc", boxShadow: "none" }}>
                 <div className="card-title">💰 Payment Status</div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button className={`btn-pay${form.payment === "paid" ? " paid" : ""}`} onClick={() => setForm(f => ({ ...f, payment: "paid" }))}>✅ Paid</button>
@@ -740,9 +907,9 @@ export default function App() {
           {view === "script" && sel && (
             <div className="card">
               <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 12, flexWrap: "wrap" }}>
-                {["script", "messages", "settings"].map(t => (
+                {["script", "messages", "routing", "settings"].map(t => (
                   <button key={t} className={`tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-                    {t === "script" ? "📋 Script" : t === "messages" ? "💬 Messages" : "⚙️ Settings"}
+                    {t === "script" ? "📋 Script" : t === "messages" ? "💬 Messages" : t === "routing" ? "🌍 Routing" : "⚙️ Settings"}
                   </button>
                 ))}
               </div>
@@ -750,16 +917,12 @@ export default function App() {
               {tab === "script" && (<>
                 {sel.payment === "pending" && <div className="alert-w">⚠️ Payment pending — script inactive.</div>}
                 <div className={`plan-box ${sel.plan === "pro" ? "pro" : "basic"}`}>
-                  {sel.plan === "pro" ? (
-                    <><b>🚀 Pro Plan Script</b> — Product name + Price + Image + Link + Secret ID automatic</>
-                  ) : (
-                    <><b>🔵 Basic Plan Script</b> — Sirf inquiry message — "I am interested in your products"</>
-                  )}
+                  {sel.plan === "pro" ? <><b>🚀 Pro</b> — Product details + Geo Routing</> : <><b>🔵 Basic</b> — Inquiry message + Geo Routing</>}
                 </div>
-                <div className="success-box">⚡ Real-time control — Dashboard se toggle → foran effect! Client sirf ek baar paste kare.</div>
+                <div className="success-box">⚡ Real-time control + 🌍 Geo Routing — Customer ka country auto detect!</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{sel.enabled && sel.payment === "paid" ? "✅ Active" : "⛔ Inactive"} — {sel.plan === "pro" ? "🚀 Pro" : "🔵 Basic"}</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{sel.enabled && sel.payment === "paid" ? "✅ Active" : "⛔ Inactive"}</div>
                     <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Paste before &lt;/body&gt; — sirf ek baar!</div>
                   </div>
                   <button className="btn-p" style={copied ? { background: "#16a34a" } : {}} onClick={copyScript}>{copied ? "✓ Copied!" : "📋 Copy Script"}</button>
@@ -769,53 +932,47 @@ export default function App() {
 
               {tab === "messages" && (
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", marginBottom: 16 }}>💬 WhatsApp Message Preview</div>
-
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>🔵 Basic Plan — Har page pe yeh message:</div>
-                  <div className="msg-preview basic">
-                    Assalam-o-Alaikum!{"\n\n"}
-                    I am interested in your products.{"\n\n"}
-                    Store: {sel.url}
-                  </div>
-
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8, marginTop: 20 }}>🚀 Pro Plan — Homepage pe:</div>
-                  <div className="msg-preview pro">
-                    Assalam-o-Alaikum!{"\n\n"}
-                    I am visiting your store:{"\n"}
-                    {sel.url}
-                  </div>
-
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8, marginTop: 12 }}>🚀 Pro Plan — Product page pe:</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", marginBottom: 16 }}>💬 Message Preview</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>🔵 Basic — Har page:</div>
+                  <div className="msg-preview basic">Assalam-o-Alaikum!{"\n\n"}I am interested in your products.{"\n\n"}Store: {sel.url}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8, marginTop: 16 }}>🚀 Pro — Product page:</div>
                   <div className="msg-preview pro">
                     Assalam-o-Alaikum, I want to order this product:{"\n\n"}
                     <b>*Product:*</b> Product Name (auto){"\n"}
                     <b>*Price:*</b> PKR 2000 / AED 90 / $25 (auto){"\n"}
                     {sel.secretKey && <><b>*Secret ID:*</b> {sel.secretKey}{"\n"}</>}
-                    <b>*Link:*</b> {sel.url}/product-page
+                    <b>*Link:*</b> {sel.url}/product
+                  </div>
+                </div>
+              )}
+
+              {tab === "routing" && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", marginBottom: 6 }}>🌍 Geo Routing</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Customer ke country ke hisaab se number automatic select hoga:</div>
+                  <NumberGroups numbers={sel.numbers} />
+                  <div style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 10, padding: "12px 14px", marginTop: 14, fontSize: 12, color: "#6b21a8" }}>
+                    <b>🌍 Routing Logic:</b><br/>
+                    1. Customer ka IP detect hoga<br/>
+                    2. Country ke numbers mein se random pick<br/>
+                    3. Agar us country ka number nahi → home country numbers use<br/>
+                    4. Sab automatic — customer kuch nahi karta!
                   </div>
                 </div>
               )}
 
               {tab === "settings" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* Plan change */}
-                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 11, padding: "14px 16px" }}>
-                    <div style={{ color: "#1e293b", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>📦 Plan Change</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button className={`plan-btn${sel.plan === "basic" ? " basic-active" : ""}`} onClick={() => setPlan(sel.id, "basic")}>🔵 Basic</button>
-                      <button className={`plan-btn${sel.plan === "pro" ? " pro-active" : ""}`} onClick={() => setPlan(sel.id, "pro")}>🚀 Pro</button>
-                    </div>
-                  </div>
-                  {/* Enable/Disable */}
                   <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 11, padding: "14px 16px" }}>
                     <div style={{ color: "#1e293b", fontWeight: 700, fontSize: 13, marginBottom: 8 }}>⚡ Real-time Toggle</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <button className={`toggle-btn ${sel.enabled ? "on" : "off"}`} onClick={() => { toggleSite(sel); setSel(s => ({ ...s, enabled: !s.enabled })); }} />
-                      <span style={{ fontWeight: 700, color: sel.enabled ? "#16a34a" : "#94a3b8" }}>{sel.enabled ? "✅ Button ON" : "⏸ Button OFF"}</span>
+                      <span style={{ fontWeight: 700, color: sel.enabled ? "#16a34a" : "#94a3b8" }}>{sel.enabled ? "✅ ON" : "⏸ OFF"}</span>
                     </div>
                   </div>
                   {[
-                    { t: "Payment Status", d: "Pending → script band + WA reminder", el: <div style={{ display: "flex", gap: 8 }}><button className={`btn-pay${sel.payment === "paid" ? " paid" : ""}`} onClick={() => setPayment(sel.id, "paid")}>✅ Paid</button><button className={`btn-pay${sel.payment === "pending" ? " pend" : ""}`} onClick={() => setPayment(sel.id, "pending")}>⏳ Pending</button></div> },
+                    { t: "Plan", d: "Basic ya Pro select karein", el: <div style={{ display: "flex", gap: 8 }}><button className={`plan-btn${sel.plan === "basic" ? " basic-active" : ""}`} onClick={() => setPlan(sel.id, "basic")}>🔵 Basic</button><button className={`plan-btn${sel.plan === "pro" ? " pro-active" : ""}`} onClick={() => setPlan(sel.id, "pro")}>🚀 Pro</button></div> },
+                    { t: "Payment", d: "Pending → script band + WA reminder", el: <div style={{ display: "flex", gap: 8 }}><button className={`btn-pay${sel.payment === "paid" ? " paid" : ""}`} onClick={() => setPayment(sel.id, "paid")}>✅ Paid</button><button className={`btn-pay${sel.payment === "pending" ? " pend" : ""}`} onClick={() => setPayment(sel.id, "pending")}>⏳ Pending</button></div> },
                     { t: "WA Reminder", d: "Client ko payment reminder bhejein", el: <button className="btn-ver" onClick={() => window.open(waReminderMsg(sel), "_blank")}>📤 Send</button> },
                   ].map(row => (
                     <div key={row.t} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 11, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
