@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v15_session";
+const SESSION_KEY = "wbm_v16_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
@@ -329,7 +329,7 @@ function Login({ onLogin }) {
             <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v14.0 — WhatsApp + Schema + Click Logs</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v16.0 — WhatsApp + Schema + Click Logs</div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
         {mode === "login" && (<>
@@ -566,7 +566,7 @@ export default function App() {
             <div style={{ width: 28, height: 28, background: "#fdf4ff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔖</div>
             <div style={{ width: 28, height: 28, background: "#ecfeff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>📊</div>
           </div>
-          <div><div style={{ fontWeight: 800, fontSize: 13, color: "#1e293b" }}>WBManager Suite</div><div style={{ fontSize: 9, color: "#94a3b8" }}>v14.0</div></div>
+          <div><div style={{ fontWeight: 800, fontSize: 13, color: "#1e293b" }}>WBManager Suite</div><div style={{ fontSize: 9, color: "#94a3b8" }}>v16.0</div></div>
           {!isWide && <button onClick={() => setNavOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer" }}>✕</button>}
         </div>
 
