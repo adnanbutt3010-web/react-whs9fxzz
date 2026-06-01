@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v14_session";
+const SESSION_KEY = "wbm_v16_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
@@ -77,18 +77,51 @@ function getSession() { try { const s = localStorage.getItem(SESSION_KEY); if (!
 function setSession() { localStorage.setItem(SESSION_KEY, JSON.stringify({ time: Date.now() })); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
-// ─── WBM SCRIPT v14 ───────────────────────────────────────
+// ─── WBM SCRIPT v16 ───────────────────────────────────────
 function genWBMScript(site) {
   if (!site.enabled || site.payment !== "paid") return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){var el=document.getElementById("wbm-fab");if(el)el.remove();})();\n<\/script>`;
   const nums = JSON.stringify(site.numbers);
   const secret = site.secretKey ? `"${site.secretKey}"` : "null";
-  return `<!-- WBManager Geo+Logs | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v14 -->
+  return `<!-- WBManager Geo+Logs | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v16 -->
 <script>
 (function(){
   var CFG={siteId:"${site.id}",siteName:"${site.name}",numbers:${nums},key:${secret},siteUrl:"${site.url}",plan:"${site.plan||"basic"}",supabaseUrl:"${SUPABASE_URL}",supabaseKey:"${SUPABASE_KEY}"};
 
   function groupByCountry(numbers){var g={};numbers.forEach(function(num){var clean=num.replace(/\\s/g,"");var pfx=["+974","+973","+968","+966","+965","+971","+92","+91","+90","+65","+61","+60","+55","+49","+44","+39","+34","+33","+20","+1"];var ok=false;for(var i=0;i<pfx.length;i++){if(clean.startsWith(pfx[i])){if(!g[pfx[i]])g[pfx[i]]=[];g[pfx[i]].push(num);ok=true;break;}}if(!ok){if(!g.other)g.other=[];g.other.push(num);}});return g;}
-  function getVisitorCountry(cb){fetch("https://ipapi.co/json/",{signal:AbortSignal.timeout(3000)}).then(function(r){return r.json();}).then(function(d){cb(d.country_calling_code||null,d.country_name||"Unknown");}).catch(function(){cb(null,"Unknown");});}
+  // Country names and calling codes map
+  var CMAP={"AF":["Afghanistan","+93"],"AL":["Albania","+355"],"DZ":["Algeria","+213"],"AR":["Argentina","+54"],"AU":["Australia","+61"],"AT":["Austria","+43"],"AZ":["Azerbaijan","+994"],"BH":["Bahrain","+973"],"BD":["Bangladesh","+880"],"BE":["Belgium","+32"],"BR":["Brazil","+55"],"BG":["Bulgaria","+359"],"CA":["Canada","+1"],"CL":["Chile","+56"],"CN":["China","+86"],"CO":["Colombia","+57"],"HR":["Croatia","+385"],"CY":["Cyprus","+357"],"CZ":["Czech Republic","+420"],"DK":["Denmark","+45"],"EG":["Egypt","+20"],"EE":["Estonia","+372"],"FI":["Finland","+358"],"FR":["France","+33"],"GE":["Georgia","+995"],"DE":["Germany","+49"],"GH":["Ghana","+233"],"GR":["Greece","+30"],"HU":["Hungary","+36"],"IN":["India","+91"],"ID":["Indonesia","+62"],"IQ":["Iraq","+964"],"IE":["Ireland","+353"],"IL":["Israel","+972"],"IT":["Italy","+39"],"JM":["Jamaica","+1876"],"JP":["Japan","+81"],"JO":["Jordan","+962"],"KZ":["Kazakhstan","+7"],"KE":["Kenya","+254"],"KW":["Kuwait","+965"],"LB":["Lebanon","+961"],"LY":["Libya","+218"],"MY":["Malaysia","+60"],"MV":["Maldives","+960"],"MX":["Mexico","+52"],"MA":["Morocco","+212"],"NL":["Netherlands","+31"],"NZ":["New Zealand","+64"],"NG":["Nigeria","+234"],"NO":["Norway","+47"],"OM":["Oman","+968"],"PK":["Pakistan","+92"],"PS":["Palestine","+970"],"PH":["Philippines","+63"],"PL":["Poland","+48"],"PT":["Portugal","+351"],"QA":["Qatar","+974"],"RO":["Romania","+40"],"RU":["Russia","+7"],"SA":["Saudi Arabia","+966"],"SN":["Senegal","+221"],"RS":["Serbia","+381"],"SG":["Singapore","+65"],"ZA":["South Africa","+27"],"KR":["South Korea","+82"],"ES":["Spain","+34"],"LK":["Sri Lanka","+94"],"SE":["Sweden","+46"],"CH":["Switzerland","+41"],"SY":["Syria","+963"],"TW":["Taiwan","+886"],"TZ":["Tanzania","+255"],"TH":["Thailand","+66"],"TN":["Tunisia","+216"],"TR":["Turkey","+90"],"UG":["Uganda","+256"],"UA":["Ukraine","+380"],"AE":["UAE","+971"],"GB":["UK","+44"],"US":["USA","+1"],"UZ":["Uzbekistan","+998"],"VN":["Vietnam","+84"],"YE":["Yemen","+967"],"ZW":["Zimbabwe","+263"]};
+  function getVisitorCountry(cb){
+    // Use geojs.io - most reliable, no rate limits, CORS friendly
+    fetch("https://get.geojs.io/v1/ip/country.json")
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d&&d.country){
+          var info=CMAP[d.country];
+          if(info)cb(info[1],info[0]);
+          else cb(null,d.country);
+        } else t2();
+      }).catch(t2);
+    function t2(){
+      fetch("https://ipwho.is/")
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(d&&d.country_code&&d.country){
+            var info=CMAP[d.country_code];
+            cb(info?info[1]:null,d.country);
+          } else t3();
+        }).catch(t3);
+    }
+    function t3(){
+      fetch("https://api.country.is/")
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(d&&d.country){
+            var info=CMAP[d.country];
+            cb(info?info[1]:null,info?info[0]:d.country);
+          } else cb(null,"Unknown");
+        }).catch(function(){cb(null,"Unknown");});
+    }
+  }
   function pickNumber(code){var g=groupByCountry(CFG.numbers);var keys=Object.keys(g);var home=keys[0];var mx=0;keys.forEach(function(k){if((g[k]||[]).length>mx){mx=(g[k]||[]).length;home=k;}});if(code){var c=code.startsWith("+")?code:"+"+code;if(g[c]&&g[c].length){var a=g[c];return a[Math.floor(Math.random()*a.length)];}}if(g[home]&&g[home].length){var a2=g[home];return a2[Math.floor(Math.random()*a2.length)];}return CFG.numbers[Math.floor(Math.random()*CFG.numbers.length)];}
   function checkStatus(cb){fetch(CFG.supabaseUrl+"/rest/v1/sites?id=eq."+CFG.siteId+"&select=enabled,payment,plan",{headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}}).then(function(r){return r.json();}).then(function(d){if(d&&d[0])cb(d[0].enabled===true&&d[0].payment==="paid",d[0].plan||"basic");else cb(false,"basic");}).catch(function(){cb(true,CFG.plan);});}
 
@@ -159,14 +192,15 @@ function genWBMScript(site) {
 // ─── SCHEMA SCRIPT ────────────────────────────────────────
 function genSchemaScript(site) {
   if (!site.enabled || site.payment !== "paid") return `<!-- Schema Manager | ${site.name} | INACTIVE -->\n<script>\n(function(){document.querySelectorAll('script[data-wbm-schema]').forEach(function(el){el.remove();});})();\n<\/script>`;
-  return `<!-- Schema Markup Manager | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v14 -->
+  return `<!-- Schema Markup Manager | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v16 -->
 <script>
 (function(){
   var CFG={siteId:"${site.id}",siteUrl:"${site.url}",businessName:"${site.businessName||site.name}",businessType:"${site.businessType||"Organization"}",businessDesc:"${site.businessDesc||""}",businessPhone:"${site.businessPhone||""}",businessEmail:"${site.businessEmail||""}",businessAddress:"${site.businessAddress||""}",businessLogo:"${site.businessLogo||""}",socialLinks:${JSON.stringify(site.socialLinks||[])},plan:"${site.plan||"basic"}",supabaseUrl:"${SUPABASE_URL}",supabaseKey:"${SUPABASE_KEY}"};
   function checkStatus(cb){fetch(CFG.supabaseUrl+"/rest/v1/schema_sites?id=eq."+CFG.siteId+"&select=enabled,payment,plan",{headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}}).then(function(r){return r.json();}).then(function(d){if(d&&d[0])cb(d[0].enabled===true&&d[0].payment==="paid",d[0].plan||"basic");else cb(false,"basic");}).catch(function(){cb(true,CFG.plan);});}
   function injectSchema(schema){var ex=document.querySelector('script[data-wbm-schema="'+schema["@type"]+'"]');if(ex)ex.remove();var el=document.createElement("script");el.type="application/ld+json";el.setAttribute("data-wbm-schema",schema["@type"]);el.textContent=JSON.stringify(schema);document.head.appendChild(el);}
-  function getPageData(){var title=(document.querySelector("h1.post-title,h1.entry-title,h1.product_title,h1")||{}).innerText||document.title;var desc=(document.querySelector('meta[name="description"]')||{}).content||"";var img=(document.querySelector('meta[property="og:image"]')||{}).content||(document.querySelector(".post-body img")||{}).src||CFG.businessLogo;var url=(document.querySelector('link[rel="canonical"]')||{}).href||location.href;var date=(document.querySelector('[property="article:published_time"]')||{}).content||new Date().toISOString();var price=(document.querySelector('[itemprop="price"]')||{}).content||(document.querySelector(".price,.amount")||{}).innerText||"";var currency=(document.querySelector('[itemprop="priceCurrency"]')||{}).content||"PKR";var isProduct=!!(document.querySelector('.product,.woocommerce-product,[itemtype*="Product"],.price'));var isSingle=document.querySelectorAll(".post-outer,.hentry,li.product").length<=1&&location.pathname!=="/"&&location.pathname!=="";return {title,desc,img,url,date,price,currency,isProduct,isSingle};}
-  function buildSchemas(plan,d){var schemas=[];var org={["@context"]:"https://schema.org","@type":CFG.businessType,name:CFG.businessName,url:CFG.siteUrl};if(CFG.businessDesc)org.description=CFG.businessDesc;if(CFG.businessPhone)org.telephone=CFG.businessPhone;if(CFG.businessEmail)org.email=CFG.businessEmail;if(CFG.businessLogo)org.logo={"@type":"ImageObject",url:CFG.businessLogo};if(CFG.socialLinks.length)org.sameAs=CFG.socialLinks;schemas.push(org);if(location.pathname==="/"||location.pathname==="")schemas.push({"@context":"https://schema.org","@type":"WebSite",name:CFG.businessName,url:CFG.siteUrl});if(d.isSingle){schemas.push({"@context":"https://schema.org","@type":"BreadcrumbList",itemListElement:[{"@type":"ListItem",position:1,name:"Home",item:CFG.siteUrl},{"@type":"ListItem",position:2,name:d.title,item:d.url}]});if(!d.isProduct)schemas.push({"@context":"https://schema.org","@type":"Article",headline:d.title,description:d.desc||undefined,image:d.img||undefined,url:d.url,datePublished:d.date,author:{"@type":"Organization",name:CFG.businessName},publisher:{"@type":"Organization",name:CFG.businessName}});if(plan==="pro"&&d.isProduct&&d.price)schemas.push({"@context":"https://schema.org","@type":"Product",name:d.title,description:d.desc||undefined,image:d.img||undefined,offers:{"@type":"Offer",price:d.price.replace(/[^0-9.]/g,""),priceCurrency:d.currency,availability:"https://schema.org/InStock",url:d.url}});}if(plan==="pro"&&!d.isSingle){var items=[];document.querySelectorAll(".post-outer,.hentry,li.product,.product-card").forEach(function(el,i){var t=(el.querySelector("h1,h2,h3,.entry-title,.product-title")||{}).innerText||"";var l=(el.querySelector("a")||{}).href||"";if(t&&l)items.push({"@type":"ListItem",position:i+1,name:t,url:l});});if(items.length)schemas.push({"@context":"https://schema.org","@type":"ItemList",itemListElement:items});}return schemas;}
+  function getPageData(){var title=(document.querySelector("h1.post-title,h1.entry-title,h1.product_title,h1")||{}).innerText||document.title;var desc=(document.querySelector('meta[name="description"]')||{}).content||"";var img=(document.querySelector('meta[property="og:image"]')||{}).content||(document.querySelector(".post-body img")||{}).src||CFG.businessLogo;var url=(document.querySelector('link[rel="canonical"]')||{}).href||location.href;var date=(document.querySelector('[property="article:published_time"]')||{}).content||new Date().toISOString();var price=(document.querySelector('[itemprop="price"]')||{}).content||(document.querySelector(".price,.amount")||{}).innerText||"";var currency=(document.querySelector('[itemprop="priceCurrency"]')||{}).content||"PKR";var isProduct=!!(document.querySelector('.product,.woocommerce-product,[itemtype*="Product"],.price'));var postCards=document.querySelectorAll(".post-outer,.hentry,li.product");var isHomePath=(location.pathname==="/"||location.pathname===""||location.pathname==="/index.html");var hasBloggerPost=!!(document.querySelector(".post-body,.entry-content,.post-title,.entry-title"));var bloggerPostUrl=/\/\d{4}\/\d{2}\/.+\.html/.test(location.pathname);
+    var isSingle=(bloggerPostUrl)||(postCards.length<=1&&!isHomePath&&hasBloggerPost)||(postCards.length===1&&hasBloggerPost);return {title,desc,img,url,date,price,currency,isProduct,isSingle};}
+  function buildSchemas(plan,d){var schemas=[];var org={["@context"]:"https://schema.org","@type":CFG.businessType,name:CFG.businessName,url:CFG.siteUrl};if(CFG.businessDesc)org.description=CFG.businessDesc;if(CFG.businessPhone)org.telephone=CFG.businessPhone;if(CFG.businessEmail)org.email=CFG.businessEmail;if(CFG.businessLogo)org.logo={"@type":"ImageObject",url:CFG.businessLogo};if(CFG.socialLinks.length)org.sameAs=CFG.socialLinks;schemas.push(org);if(location.pathname==="/"||location.pathname==="")schemas.push({"@context":"https://schema.org","@type":"WebSite",name:CFG.businessName,url:CFG.siteUrl});if(d.isSingle){schemas.push({"@context":"https://schema.org","@type":"BreadcrumbList",itemListElement:[{"@type":"ListItem",position:1,name:"Home",item:CFG.siteUrl},{"@type":"ListItem",position:2,name:d.title,item:d.url}]});schemas.push({"@context":"https://schema.org","@type":"Article",headline:d.title,description:d.desc||undefined,image:d.img||undefined,url:d.url,datePublished:d.date,author:{"@type":"Organization",name:CFG.businessName},publisher:{"@type":"Organization",name:CFG.businessName,"logo":CFG.businessLogo?{"@type":"ImageObject","url":CFG.businessLogo}:undefined}});if(plan==="pro"&&d.isSingle){var prodSchema={"@context":"https://schema.org","@type":"Product",name:d.title,description:d.desc||undefined,image:d.img||undefined,url:d.url,brand:{"@type":"Brand",name:CFG.businessName}};if(d.price){prodSchema.offers={"@type":"Offer",price:d.price.replace(/[^0-9.]/g,""),priceCurrency:d.currency,availability:"https://schema.org/InStock",url:d.url};}schemas.push(prodSchema);}}if(plan==="pro"&&!d.isSingle){var items=[];document.querySelectorAll(".post-outer,.hentry,li.product,.product-card").forEach(function(el,i){var t=(el.querySelector("h1,h2,h3,.entry-title,.product-title")||{}).innerText||"";var l=(el.querySelector("a")||{}).href||"";if(t&&l)items.push({"@type":"ListItem",position:i+1,name:t,url:l});});if(items.length)schemas.push({"@context":"https://schema.org","@type":"ItemList",itemListElement:items});}return schemas;}
   function apply(){checkStatus(function(active,plan){document.querySelectorAll('script[data-wbm-schema]').forEach(function(el){el.remove();});if(!active)return;buildSchemas(plan,getPageData()).forEach(function(s){injectSchema(s);});});}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply);else setTimeout(apply,300);
   setInterval(apply,5*60*1000);
@@ -329,7 +363,7 @@ function Login({ onLogin }) {
             <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v14.0 — WhatsApp + Schema + Click Logs</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v16.0 — WhatsApp + Schema + Click Logs</div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
         {mode === "login" && (<>
@@ -566,7 +600,7 @@ export default function App() {
             <div style={{ width: 28, height: 28, background: "#fdf4ff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔖</div>
             <div style={{ width: 28, height: 28, background: "#ecfeff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>📊</div>
           </div>
-          <div><div style={{ fontWeight: 800, fontSize: 13, color: "#1e293b" }}>WBManager Suite</div><div style={{ fontSize: 9, color: "#94a3b8" }}>v14.0</div></div>
+          <div><div style={{ fontWeight: 800, fontSize: 13, color: "#1e293b" }}>WBManager Suite</div><div style={{ fontSize: 9, color: "#94a3b8" }}>v16.0</div></div>
           {!isWide && <button onClick={() => setNavOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer" }}>✕</button>}
         </div>
 
