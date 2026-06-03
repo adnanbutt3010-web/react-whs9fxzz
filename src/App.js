@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v18_session";
+const SESSION_KEY = "wbm_v19_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
@@ -82,7 +82,7 @@ function genWBMScript(site) {
   if (!site.enabled || site.payment !== "paid") return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){var el=document.getElementById("wbm-fab");if(el)el.remove();})();\n<\/script>`;
   const nums = JSON.stringify(site.numbers);
   const secret = site.secretKey ? `"${site.secretKey}"` : "null";
-  return `<!-- WBManager Geo+Logs | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v18 -->
+  return `<!-- WBManager Geo+Logs | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v19 -->
 <script>
 (function(){
   var CFG={siteId:"${site.id}",siteName:"${site.name}",numbers:${nums},key:${secret},siteUrl:"${site.url}",plan:"${site.plan||"basic"}",supabaseUrl:"${SUPABASE_URL}",supabaseKey:"${SUPABASE_KEY}"};
@@ -212,7 +212,7 @@ function genSchemaScript(site) {
   const bType = site.businessType || "Organization";
   const socialLinks = JSON.stringify(site.socialLinks || []);
 
-  return `<!-- WBManager Schema | ${site.name} | ${isPro ? "PRO" : "BASIC"} | v18 -->
+  return `<!-- WBManager Schema | ${site.name} | ${isPro ? "PRO" : "BASIC"} | v19 -->
 
 <!-- STATIC BASE SCHEMA: Google bot detects this immediately -->
 <script id='wbm-schema-base' type='application/ld+json'>
@@ -237,7 +237,7 @@ function genSchemaScript(site) {
   "@type": "Product",
   "name": "${bName}",
   "description": "${bDesc || bName + ' - quality products'}",
-  "image": "${bLogo || site.url + '/favicon.ico'}",
+  "image": "${bLogo}",
   "brand": {
     "@type": "Brand",
     "name": "${bName}"
@@ -332,11 +332,18 @@ function genSchemaScript(site) {
     }).catch(function(){cb(true,CFG.plan);});
   }
 
-  // ── Price Detection (aapka original working code + extra currencies) ──
+  // ── Price Detection — All currencies ──────────────────
   function detectPrice(){
     var bodyText=document.body.innerText||"";
-    // PKR / RS (aapka original)
-    var pkrPattern=/(?:RS|PKR)\s?(\d+[\d,.]*)|([\d][\d,.]*)\s?(?:PKR|RS)/i;
+    // Try meta tags first (most accurate)
+    var metaPrice=document.querySelector('[property="product:price:amount"],[itemprop="price"]');
+    if(metaPrice){
+      var metaCur=document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"]');
+      var p=(metaPrice.content||metaPrice.innerText||"").replace(/[^0-9.,]/g,"");
+      if(p)return {price:p,currency:(metaCur?metaCur.content||metaCur.innerText:"PKR")||"PKR"};
+    }
+    // PKR / RS pattern (aapka original working)
+    var pkrPattern=/(?:RS\.?|PKR)\s?([\d,]+)|([\d,]+)\s?(?:PKR|RS\.?)/i;
     var match=bodyText.match(pkrPattern);
     if(match){return {price:(match[1]||match[2]).replace(/,/g,""),currency:"PKR"};}
     // USD
@@ -357,6 +364,9 @@ function genSchemaScript(site) {
     // INR
     var inr=bodyText.match(/₹\s?([\d,]+)/);
     if(inr)return {price:inr[1].replace(/,/g,""),currency:"INR"};
+    // Generic Price: label
+    var gen=bodyText.match(/Price[:\s]+([\d,]+)/i);
+    if(gen)return {price:gen[1].replace(/,/g,""),currency:"PKR"};
     return null;
   }
 
@@ -659,7 +669,7 @@ function Login({ onLogin }) {
             <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v18.0 — WhatsApp + Schema + Click Logs</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v19.0 — WhatsApp + Schema + Click Logs</div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
         {mode === "login" && (<>
@@ -825,9 +835,31 @@ export default function App() {
   async function saveSchema() {
     if (!formSchema.name.trim() || !formSchema.url.trim()) { toast_("Name aur URL zaroor bharein!", "err"); return; }
     setSaving(true);
-    const d = { id: viewSchema === "add" ? genId() : selSchema.id, name: formSchema.name.trim(), url: formSchema.url.trim(), enabled: formSchema.payment === "paid", payment: formSchema.payment, plan: formSchema.plan, businessName: formSchema.businessName, businessType: formSchema.businessType, businessDesc: formSchema.businessDesc, businessPhone: formSchema.businessPhone, businessEmail: formSchema.businessEmail, businessAddress: formSchema.businessAddress, businessLogo: formSchema.businessLogo, socialLinks: formSchema.socialLinks, createdAt: viewSchema === "add" ? new Date().toISOString() : selSchema.createdAt, verified: viewSchema === "add" ? false : selSchema.verified };
-    const res = await sb.upsertSchemaSite(d);
-    if (res !== null) { toast_(viewSchema === "add" ? "Schema site add! ✅" : "Update! ✅"); await loadSchema(); goSchema("dashboard"); } else toast_("Error!", "err");
+    const d = {
+      id: viewSchema === "add" ? genId() : selSchema.id,
+      name: formSchema.name.trim(), url: formSchema.url.trim(),
+      enabled: formSchema.payment === "paid", payment: formSchema.payment, plan: formSchema.plan,
+      businessName: formSchema.businessName, businessType: formSchema.businessType,
+      businessDesc: formSchema.businessDesc, businessPhone: formSchema.businessPhone,
+      businessEmail: formSchema.businessEmail, businessAddress: formSchema.businessAddress,
+      businessLogo: formSchema.businessLogo, socialLinks: formSchema.socialLinks,
+      createdAt: viewSchema === "add" ? new Date().toISOString() : selSchema.createdAt,
+      verified: viewSchema === "add" ? false : selSchema.verified
+    };
+    let res;
+    if (viewSchema === "edit" && selSchema.id) {
+      // Use PATCH for updates to ensure all fields are updated
+      res = await sb.updateSchemaSite(selSchema.id, {
+        name: d.name, url: d.url, enabled: d.enabled, payment: d.payment, plan: d.plan,
+        business_name: d.businessName, business_type: d.businessType,
+        business_desc: d.businessDesc, business_phone: d.businessPhone,
+        business_email: d.businessEmail, business_address: d.businessAddress,
+        business_logo: d.businessLogo, social_links: d.socialLinks,
+      });
+    } else {
+      res = await sb.upsertSchemaSite(d);
+    }
+    if (res !== null) { toast_(viewSchema === "add" ? "Schema site add! ✅" : "Update ho gaya! ✅"); await loadSchema(); goSchema("dashboard"); } else toast_("Error — dobara try karein!", "err");
     setSaving(false);
   }
 
