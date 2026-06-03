@@ -235,12 +235,22 @@ function genSchemaScript(site) {
 {
   "@context": "https://schema.org/",
   "@type": "Product",
-  "name": "Product",
+  "name": "${bName}",
+  "description": "${bDesc || bName + ' - quality products'}",
+  "brand": {
+    "@type": "Brand",
+    "name": "${bName}"
+  },
   "offers": {
     "@type": "Offer",
     "priceCurrency": "PKR",
     "price": "1",
-    "availability": "https://schema.org/InStock"
+    "availability": "https://schema.org/InStock",
+    "url": "${site.url}",
+    "seller": {
+      "@type": "Organization",
+      "name": "${bName}"
+    }
   }
 }
 <\/script>
