@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v17_session";
+const SESSION_KEY = "wbm_v18_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
@@ -82,7 +82,7 @@ function genWBMScript(site) {
   if (!site.enabled || site.payment !== "paid") return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){var el=document.getElementById("wbm-fab");if(el)el.remove();})();\n<\/script>`;
   const nums = JSON.stringify(site.numbers);
   const secret = site.secretKey ? `"${site.secretKey}"` : "null";
-  return `<!-- WBManager Geo+Logs | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v17 -->
+  return `<!-- WBManager Geo+Logs | ${site.name} | ${site.plan === "pro" ? "PRO" : "BASIC"} | v18 -->
 <script>
 (function(){
   var CFG={siteId:"${site.id}",siteName:"${site.name}",numbers:${nums},key:${secret},siteUrl:"${site.url}",plan:"${site.plan||"basic"}",supabaseUrl:"${SUPABASE_URL}",supabaseKey:"${SUPABASE_KEY}"};
@@ -212,7 +212,7 @@ function genSchemaScript(site) {
   const bType = site.businessType || "Organization";
   const socialLinks = JSON.stringify(site.socialLinks || []);
 
-  return `<!-- WBManager Schema | ${site.name} | ${isPro ? "PRO" : "BASIC"} | v17 -->
+  return `<!-- WBManager Schema | ${site.name} | ${isPro ? "PRO" : "BASIC"} | v18 -->
 
 <!-- STATIC BASE SCHEMA: Google bot detects this immediately -->
 <script id='wbm-schema-base' type='application/ld+json'>
@@ -253,6 +253,52 @@ function genSchemaScript(site) {
       "name": "${bName}"
     }
   }
+}
+<\/script>
+
+<!-- BREADCRUMB SCHEMA: Static for Google bot -->
+<script id='wbm-breadcrumb-schema' type='application/ld+json'>
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "${site.url}"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Products",
+      "item": "${site.url}"
+    }
+  ]
+}
+<\/script>
+
+<!-- ARTICLE SCHEMA: Static for Google bot -->
+<script id='wbm-article-schema' type='application/ld+json'>
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "${bName}",
+  "author": {
+    "@type": "Organization",
+    "name": "${bName}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "${bName}"${bLogo ? `,
+    "logo": {
+      "@type": "ImageObject",
+      "url": "${bLogo}"
+    }` : ""}
+  },
+  "datePublished": "${new Date().toISOString().split('T')[0]}",
+  "dateModified": "${new Date().toISOString().split('T')[0]}"${bLogo ? `,
+  "image": "${bLogo}"` : ""}
 }
 <\/script>
 
@@ -613,7 +659,7 @@ function Login({ onLogin }) {
             <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v17.0 — WhatsApp + Schema + Click Logs</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v18.0 — WhatsApp + Schema + Click Logs</div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
         {mode === "login" && (<>
