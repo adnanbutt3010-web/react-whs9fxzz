@@ -369,26 +369,27 @@ function genSchemaScript(site) {
 
   // ── Price Detection — All currencies ──────────────────
   function detectPrice(){
-    var bodyText=document.body.innerText||"";
-    // Try meta tags first (most accurate)
+    // 1. Try meta tags first
     var metaPrice=document.querySelector('[property="product:price:amount"],[itemprop="price"]');
     if(metaPrice){
       var metaCur=document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"]');
-      var p=(metaPrice.content||metaPrice.innerText||"").replace(/[^0-9.,]/g,"");
-      if(p)return {price:p,currency:(metaCur?metaCur.content||metaCur.innerText:"PKR")||"PKR"};
+      var p=(metaPrice.content||metaPrice.getAttribute("content")||metaPrice.innerText||"").replace(/[^0-9.,]/g,"");
+      if(p&&p!=="0")return {price:p,currency:(metaCur?metaCur.content||metaCur.innerText:"PKR")||"PKR"};
     }
-    // PKR / RS pattern (aapka original working)
-    var pkrPattern=/(?:RS\.?|PKR)\s?([\d,]+)|([\d,]+)\s?(?:PKR|RS\.?)/i;
-    var match=bodyText.match(pkrPattern);
-    if(match){return {price:(match[1]||match[2]).replace(/,/g,""),currency:"PKR"};}
+    // 2. Try post body text - get all text from post
+    var postBody=document.querySelector(".post-body,.entry-content,article");
+    var bodyText=postBody?postBody.innerText:document.body.innerText||"";
+    // PKR / RS pattern (aapka original)
+    var pkrMatch=bodyText.match(/(?:PKR|RS\.?)\s?([\d,]{3,})|([\d,]{3,})\s?(?:PKR|RS\.?)/i);
+    if(pkrMatch){return {price:(pkrMatch[1]||pkrMatch[2]).replace(/,/g,""),currency:"PKR"};}
     // USD
     var dm=bodyText.match(/\$\s?([\d,]+\.?\d{0,2})/);
     if(dm)return {price:dm[1].replace(/,/g,""),currency:"USD"};
     // GBP
-    var gm=bodyText.match(/£\s?([\d,]+\.?\d{0,2})/);
+    var gm=bodyText.match(/£\s?([\d,]+)/);
     if(gm)return {price:gm[1].replace(/,/g,""),currency:"GBP"};
     // EUR
-    var em=bodyText.match(/€\s?([\d,]+[.,]?\d{0,2})/);
+    var em=bodyText.match(/€\s?([\d,]+)/);
     if(em)return {price:em[1].replace(/,/g,""),currency:"EUR"};
     // AED
     var aed=bodyText.match(/AED\s?([\d,]+)/i);
@@ -399,8 +400,8 @@ function genSchemaScript(site) {
     // INR
     var inr=bodyText.match(/₹\s?([\d,]+)/);
     if(inr)return {price:inr[1].replace(/,/g,""),currency:"INR"};
-    // Generic Price: label
-    var gen=bodyText.match(/Price[:\s]+([\d,]+)/i);
+    // Generic: Price: 1250 or قیمت: 1250
+    var gen=bodyText.match(/(?:Price|قیمت|قيمت)[:\s:]+([\d,]{3,})/i);
     if(gen)return {price:gen[1].replace(/,/g,""),currency:"PKR"};
     return null;
   }
@@ -481,7 +482,7 @@ function genSchemaScript(site) {
           prodData.brand={"@type":"Brand","name":CFG.businessName};
           if(priceInfo){prodData.offers.price=priceInfo.price;prodData.offers.priceCurrency=priceInfo.currency;}
           prodEl.textContent=JSON.stringify(prodData);
-          console.log("WBManager: Product schema updated, Price:",priceInfo?priceInfo.price:"not found");
+          console.log("WBManager v20: Product schema updated! Price:",priceInfo?priceInfo.price:"NOT FOUND - check price format on page");
         }catch(e){}
       }
     } else {
@@ -546,7 +547,7 @@ function genSchemaScript(site) {
 })();
 //]]>
 <\/script>
-<!-- End WBManager Schema v17 -->`;
+<!-- End WBManager Schema v20 -->`;
 }
 
 
