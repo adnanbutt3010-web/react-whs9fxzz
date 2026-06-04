@@ -123,7 +123,7 @@ function genWBMScript(site) {
     }
   }
   function pickNumber(code){var g=groupByCountry(CFG.numbers);var keys=Object.keys(g);var home=keys[0];var mx=0;keys.forEach(function(k){if((g[k]||[]).length>mx){mx=(g[k]||[]).length;home=k;}});if(code){var c=code.startsWith("+")?code:"+"+code;if(g[c]&&g[c].length){var a=g[c];return a[Math.floor(Math.random()*a.length)];}}if(g[home]&&g[home].length){var a2=g[home];return a2[Math.floor(Math.random()*a2.length)];}return CFG.numbers[Math.floor(Math.random()*CFG.numbers.length)];}
-  function checkStatus(cb){fetch(CFG.supabaseUrl+"/rest/v1/sites?id=eq."+CFG.siteId+"&select=enabled,payment,plan",{headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}}).then(function(r){return r.json();}).then(function(d){if(d&&d[0])cb(d[0].enabled===true&&d[0].payment==="paid",d[0].plan||"basic");else cb(false,"basic");}).catch(function(){cb(true,CFG.plan);});}
+  function checkStatus(cb){fetch(CFG.supabaseUrl+"/rest/v1/sites?select=enabled,payment,plan\x26id=eq."+CFG.siteId,{headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}}).then(function(r){return r.json();}).then(function(d){if(d&&d[0])cb(d[0].enabled===true&&d[0].payment==="paid",d[0].plan||"basic");else cb(false,"basic");}).catch(function(){cb(true,CFG.plan);});}
 
   // ── Log click to Supabase ────────────────────────────────
   function logClick(countryCode,countryName,plan){
@@ -339,6 +339,7 @@ function genSchemaScript(site) {
 
 <!-- DYNAMIC UPDATER: Updates schemas with real page data -->
 <script>
+/* <![CDATA[ */
 (function(){
   var CFG={
     siteId:"${site.id}",
@@ -357,7 +358,7 @@ function genSchemaScript(site) {
   };
 
   function checkStatus(cb){
-    fetch(CFG.supabaseUrl+"/rest/v1/schema_sites?id=eq."+CFG.siteId+"&select=enabled,payment,plan",{
+    fetch(CFG.supabaseUrl+"/rest/v1/schema_sites?select=enabled,payment,plan\x26id=eq."+CFG.siteId,{
       headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}
     }).then(function(r){return r.json();})
     .then(function(d){
@@ -544,6 +545,7 @@ function genSchemaScript(site) {
   }).observe(document.body,{childList:true,subtree:true});
 
 })();
+/* ]]> */
 <\/script>
 <!-- End WBManager Schema v21 -->`;
 }
