@@ -77,7 +77,7 @@ function getSession() { try { const s = localStorage.getItem(SESSION_KEY); if (!
 function setSession() { localStorage.setItem(SESSION_KEY, JSON.stringify({ time: Date.now() })); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
-// ─── WBM SCRIPT v16 ───────────────────────────────────────
+// ─── WBM SCRIPT v21 ───────────────────────────────────────
 function genWBMScript(site) {
   if (!site.enabled || site.payment !== "paid") return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){var el=document.getElementById("wbm-fab");if(el)el.remove();})();\n<\/script>`;
   const nums = JSON.stringify(site.numbers);
@@ -188,58 +188,34 @@ function genWBMScript(site) {
 })();
 <\/script>`;
 }
-
-// ─── SCHEMA SCRIPT (Smart Universal v22.3) ───────────────
-function genSchemaScript(site) {
-  if (!site.enabled || site.payment !== "paid") {
-    return `<!-- Schema Manager | ${site.name} | INACTIVE -->
-<script>
-(function(){
-  var b=document.getElementById("wbm-schema-base");if(b)b.remove();
-  var p=document.getElementById("wbm-product-schema");if(p)p.remove();
-  var br=document.getElementById("wbm-breadcrumb-schema");if(br)br.remove();
-})();
-<\/script>`;
-  }
-
-  const bName = (site.businessName || site.name).replace(/"/g, '\'');
-  const bDesc = (site.businessDesc || "Best Online Store").replace(/"/g, '\'');
-  const bPhone = (site.businessPhone || "").replace(/"/g, '\'');
-  const bEmail = (site.businessEmail || "").replace(/"/g, '\'');
-  const bAddr = (site.businessAddress || "").replace(/"/g, '\'');
-  const bLogo = (site.businessLogo || "").replace(/"/g, '\'');
-  const bType = site.businessType || "Organization";
-
-  return `<!-- Smart Universal Schema | PRO v22.3 | Multi-Currency Global Edition -->
-
-<!-- STATIC BASE SCHEMA -->
-<script id='wbm-schema-base' type='application/ld+json'>
+  <!-- Smart Universal Schema | PRO v21 | Multi-Currency Global Edition -->
+    
+  <script id='wbm-schema-base' type='application/ld+json'>
 {
   "@context": "https://schema.org",
-  "@type": "${bType}",
-  "name": "${bName}",
-  "url": "${site.url}",
-  "description": "${bDesc}"${bPhone ? `,
-  "telephone": "${bPhone}"` : ""}${bEmail ? `,
-  "email": "${bEmail}"` : ""}${bAddr ? `,
-  "address": {"@type": "PostalAddress", "streetAddress": "${bAddr}"}` : ""}${bLogo ? `,
-  "logo": {"@type": "ImageObject", "url": "${bLogo}"}` : ""}
+  "@type": "OnlineStore",
+  "name": "Shopease Deals",
+  "url": "https://shopeasedealspk.blogspot.com/",
+  "description": "Best Online Store for Premium Footwear, Apparel, and Gadgets",
+  "telephone": "+923094626298",
+  "email": "adnanmunir221@gmail.com",
+  "address": {"@type": "PostalAddress", "streetAddress": "Lahore, Pakistan", "addressCountry": "PK"},
+  "logo": {"@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjRMZ3SlbNYYdXvzzfs-z4VCS_rlh6r7K8dMsKXz7tryrM0HvMHMMib8PP8BXL6PsJUqYlg5Z5QCYmw_YehYYLeI5SSc15yD0GzpcFb56lhJohRZLsqH-KnRwZoMz4witLqqCFjCLVwsyCFiFjZS86Tn689fP6Df6WFGlDMVttA1mteq8-IEkUEtgAtwqM/s1600/Gemini_Generated_Image_63gcu063gcu063gc.png"}
 }
-<\/script>
+</script>
 
-<!-- PRODUCT SCHEMA -->
 <script id='wbm-product-schema' type='application/ld+json'>
 {
   "@context": "https://schema.org/",
   "@type": "Product",
-  "name": "${bName}",
-  "description": "${bDesc}",
-  "image": ["${bLogo || site.url}"],
-  "sku": "WBM-001",
-  "mpn": "WBM-001",
+  "name": "Premium Quality Product",
+  "description": "Buy Now at best prices. High quality product available with cash on delivery.",
+  "image": ["https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjRMZ3SlbNYYdXvzzfs-z4VCS_rlh6r7K8dMsKXz7tryrM0HvMHMMib8PP8BXL6PsJUqYlg5Z5QCYmw_YehYYLeI5SSc15yD0GzpcFb56lhJohRZLsqH-KnRwZoMz4witLqqCFjCLVwsyCFiFjZS86Tn689fP6Df6WFGlDMVttA1mteq8-IEkUEtgAtwqM/s1600/Gemini_Generated_Image_63gcu063gcu063gc.png"],
+  "sku": "SE-99200",
+  "mpn": "SE-99200",
   "brand": {
     "@type": "Brand",
-    "name": "${bName}"
+    "name": "Shopease"
   },
   "review": {
     "@type": "Review",
@@ -258,8 +234,8 @@ function genSchemaScript(site) {
     "priceValidUntil": "2028-12-31",
     "itemCondition": "https://schema.org/NewCondition",
     "availability": "https://schema.org/InStock",
-    "url": "${site.url}",
-    "seller": { "@type": "Organization", "name": "${bName}" },
+    "url": "https://shopeasedealspk.blogspot.com/",
+    "seller": { "@type": "Organization", "name": "Shopease" },
     "shippingDetails": {
       "@type": "OfferShippingDetails",
       "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "PKR" },
@@ -280,87 +256,100 @@ function genSchemaScript(site) {
     }
   }
 }
-<\/script>
+</script>
 
-<!-- BREADCRUMB SCHEMA -->
 <script id='wbm-breadcrumb-schema' type='application/ld+json'>
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "${site.url}" }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://shopeasedealspk.blogspot.com/" }
   ]
 }
-<\/script>
+</script>
 
-<!-- DYNAMIC UPDATER -->
 <script type='text/javascript'>
+//<![CDATA[
 (function(){
   var CFG={
-    siteId:"${site.id}",
-    siteUrl:"${site.url}",
-    businessName:"${bName}",
-    businessType:"${bType}",
-    businessDesc:"${bDesc}",
-    businessPhone:"${bPhone}",
-    businessEmail:"${bEmail}",
-    businessAddress:"${bAddr}",
-    businessLogo:"${bLogo}",
-    plan:"${site.plan||"pro"}",
-    supabaseUrl:"${SUPABASE_URL}",
-    supabaseKey:"${SUPABASE_KEY}"
+    siteId:"s_q0f4t0fc",
+    siteUrl:"https://shopeasedealspk.blogspot.com/",
+    businessName:"Shopease",
+    businessType:"OnlineStore",
+    businessDesc:"Best Online Store",
+    businessPhone:"+923094626298",
+    businessEmail:"adnanmunir221@gmail.com",
+    businessAddress:"Lahore, Pakistan",
+    businessLogo:"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjRMZ3SlbNYYdXvzzfs-z4VCS_rlh6r7K8dMsKXz7tryrM0HvMHMMib8PP8BXL6PsJUqYlg5Z5QCYmw_YehYYLeI5SSc15yD0GzpcFb56lhJohRZLsqH-KnRwZoMz4witLqqCFjCLVwsyCFiFjZS86Tn689fP6Df6WFGlDMVttA1mteq8-IEkUEtgAtwqM/s1600/Gemini_Generated_Image_63gcu063gcu063gc.png",
+    plan:"pro",
+    supabaseUrl:"https://wuiblzjwolncpafjmkch.supabase.co",
+    supabaseKey:"sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0"
   };
 
   // GLOBAL MULTI-CURRENCY PRICE DETECTION
   function detectPrice(){
+    // 1. Core Meta Tags detection (Most reliable across Shopify, Woo, Blogger)
     var metaPrice=document.querySelector('[property="product:price:amount"],[itemprop="price"],meta[name="twitter:data1"],meta[property="og:price:amount"]');
     if(metaPrice){
       var metaCur=document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"],meta[property="og:price:currency"]');
       var p=(metaPrice.content||metaPrice.getAttribute("content")||metaPrice.innerText||"").replace(/[^0-9.,]/g,"");
-      if(p&&p!=="0"&&p!=="1"){
+      if(p && p!=="0" && p!=="1"){
         var c=(metaCur?metaCur.content||metaCur.getAttribute("content")||metaCur.innerText:"PKR")||"PKR";
         return {price:p,currency:c.trim().toUpperCase()};
       }
     }
-    var postBody=document.querySelector(".post-body,.entry-content,.woocommerce-product-details__short-description,.summary,main,article");
+    
+    // 2. DOM Content Extraction
+    var postBody=document.querySelector(".post-body, .entry-content, .woocommerce-product-details__short-description, .summary, .product-single__description, .product-description, main, article");
     var bodyText=postBody?postBody.innerText:document.body.innerText||"";
-    var symbolPatterns=[
-      {sym:/\$\s?(\d+[\d,.]*)/,code:"USD"},
-      {sym:/£\s?(\d+[\d,.]*)/,code:"GBP"},
-      {sym:/€\s?(\d+[\d,.]*)/,code:"EUR"},
-      {sym:/¥\s?(\d+[\d,.]*)/,code:"JPY"},
-      {sym:/(?:RS|PKR)[\s:]?(\d+[\d,.]*)|([\d,]+)[\s:]?(?:PKR|RS)/i,code:"PKR"},
-      {sym:/(?:INR|₹)[\s:]?(\d+[\d,.]*)/i,code:"INR"},
-      {sym:/(?:AED|DH)[\s:]?(\d+[\d,.]*)/i,code:"AED"},
-      {sym:/SAR[\s:]?(\d+[\d,.]*)/i,code:"SAR"},
-      {sym:/CAD\s?(\d+[\d,.]*)/i,code:"CAD"},
-      {sym:/AUD\s?(\d+[\d,.]*)/i,code:"AUD"}
+    
+    // Currency Symbols Detection Matrix
+    var symbolPatterns = [
+      { sym: /\$\s?(\d+[\d,.]*)/, code: "USD" },
+      { sym: /£\s?(\d+[\d,.]*)/, code: "GBP" },
+      { sym: /€\s?(\d+[\d,.]*)/, code: "EUR" },
+      { sym: /¥\s?(\d+[\d,.]*)/, code: "JPY" },
+      { sym: /(?:RS|PKR)[\s:]?(\d+[\d,.]*)|(\d+[\d,.]*)[\s:]?(?:PKR|RS)/i, code: "PKR" },
+      { sym: /(?:INR|₹)[\s:]?(\d+[\d,.]*)/i, code: "INR" },
+      { sym: /(?:AED|DH)[\s:]?(\d+[\d,.]*)/i, code: "AED" },
+      { sym: /SAR[\s:]?(\d+[\d,.]*)/i, code: "SAR" },
+      { sym: /CAD\s?(\d+[\d,.]*)/i, code: "CAD" },
+      { sym: /AUD\s?(\d+[\d,.]*)/i, code: "AUD" }
     ];
-    for(var i=0;i<symbolPatterns.length;i++){
-      var match=bodyText.match(symbolPatterns[i].sym);
-      if(match){var priceVal=match[1]||match[2];if(priceVal)return {price:priceVal.replace(/,/g,""),currency:symbolPatterns[i].code};}
+
+    for(var i=0; i < symbolPatterns.length; i++) {
+      var match = bodyText.match(symbolPatterns[i].sym);
+      if(match){
+        var priceVal = match[1] || match[2];
+        if(priceVal) return {price:priceVal.replace(/,/g,""), currency:symbolPatterns[i].code};
+      }
     }
-    var gen=bodyText.match(/(?:Price|قیمت|Price:)\s?(\d+[\d,.]*)/i);
+    
+    // Generic Keyword Fallback (Price: 1500 -> defaults to PKR or site standard)
+    var gen=bodyText.match(/(?:Price|قیمت|Price:)[\s:]?(\d+[\d,.]*)/i);
     if(gen)return {price:gen[1].replace(/,/g,""),currency:"PKR"};
+    
     return null;
   }
 
   function detectImage(){
     var og=document.querySelector('meta[property="og:image"]');
-    if(og&&og.content)return og.content;
-    var img=document.querySelector('.post-body img,.entry-content img');
-    if(img&&img.src)return img.src;
+    if(og && og.content)return og.content;
+    var img=document.querySelector('.post-body img, .entry-content img, .woocommerce-product-gallery__image img, .product-single__photo');
+    if(img && img.src)return img.src;
     return CFG.businessLogo||null;
   }
 
   function instantDeduct(){
-    var path=location.pathname;
-    var isHome=(path==="/"||path===""||path==="/index.html");
-    if(isHome)return;
+    var path = location.pathname;
+    var isHome = (path==="/"||path===""||path==="/index.html");
+    if(isHome) return;
+
     var title=document.title.split("|")[0].split("-")[0].trim();
     var img=detectImage();
     var priceInfo=detectPrice();
-    var desc=(document.querySelector('meta[name="description"],meta[property="og:description"]')||{}).content||CFG.businessDesc;
+    var desc=(document.querySelector('meta[name="description"], meta[property="og:description"]')||{}).content||CFG.businessDesc;
+
     var prodEl=document.getElementById("wbm-product-schema");
     if(prodEl){
       try{
@@ -372,63 +361,53 @@ function genSchemaScript(site) {
         if(priceInfo){
           prodData.offers.price=priceInfo.price;
           prodData.offers.priceCurrency=priceInfo.currency;
-          if(priceInfo.currency!=="PKR"){
-            prodData.offers.shippingDetails.shippingRate.currency=priceInfo.currency;
-            if(priceInfo.currency==="USD"){prodData.offers.shippingDetails.shippingDestination.addressCountry="US";prodData.offers.hasMerchantReturnPolicy.applicableCountry="US";}
-            else if(priceInfo.currency==="GBP"){prodData.offers.shippingDetails.shippingDestination.addressCountry="GB";prodData.offers.hasMerchantReturnPolicy.applicableCountry="GB";}
+          // Dynamic Shipping and Returns Country Sync as per Currency
+          if(priceInfo.currency !== "PKR") {
+            prodData.offers.shippingDetails.shippingRate.currency = priceInfo.currency;
+            if(priceInfo.currency === "USD") {
+              prodData.offers.shippingDetails.shippingDestination.addressCountry = "US";
+              prodData.offers.hasMerchantReturnPolicy.applicableCountry = "US";
+            } else if(priceInfo.currency === "GBP") {
+              prodData.offers.shippingDetails.shippingDestination.addressCountry = "GB";
+              prodData.offers.hasMerchantReturnPolicy.applicableCountry = "GB";
+            }
           }
         }
         prodEl.textContent=JSON.stringify(prodData);
-        console.log("WBManager: Schema Updated! Price:",priceInfo?priceInfo.price:"not found","Currency:",priceInfo?priceInfo.currency:"PKR");
-      }catch(e){console.log("WBManager Schema error:",e);}
-    }
-    // Update breadcrumb
-    var bcEl=document.getElementById("wbm-breadcrumb-schema");
-    if(bcEl){
-      try{
-        var bcData=JSON.parse(bcEl.textContent);
-        bcData.itemListElement=[
-          {"@type":"ListItem","position":1,"name":"Home","item":CFG.siteUrl},
-          {"@type":"ListItem","position":2,"name":title,"item":window.location.href}
-        ];
-        bcEl.textContent=JSON.stringify(bcData);
+        console.log("Global Auto-Deduct Active! Currency:", prodData.offers.priceCurrency, "| Price:", prodData.offers.price);
       }catch(e){}
     }
   }
 
-  // Run immediately
+  // Fauri execution for Google bots
   instantDeduct();
 
   function checkStatus(cb){
-    fetch(CFG.supabaseUrl+"/rest/v1/schema_sites?select=enabled,payment,plan\x26id=eq."+CFG.siteId,{
+    fetch(CFG.supabaseUrl+"/rest/v1/schema_sites?select=enabled,payment,plan&id=eq."+CFG.siteId,{
       headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}
     }).then(function(r){return r.json();})
     .then(function(d){
-      if(d&&d[0])cb(d[0].enabled===true&&d[0].payment==="paid",d[0].plan||"basic");
+      if(d && d[0])cb(d[0].enabled===true && d[0].payment==="paid",d[0].plan||"basic");
       else cb(false,"basic");
     }).catch(function(){cb(true,CFG.plan);});
   }
 
   function runBackend(){
-    checkStatus(function(active){
+    checkStatus(function(active,plan){
       if(!active){
         var b=document.getElementById("wbm-schema-base");if(b)b.remove();
         var p=document.getElementById("wbm-product-schema");if(p)p.remove();
-        var br=document.getElementById("wbm-breadcrumb-schema");if(br)br.remove();
       }
     });
   }
 
-  if(document.readyState==="complete"){instantDeduct();runBackend();}
-  else{window.addEventListener("load",function(){instantDeduct();runBackend();});}
+  if(document.readyState==='complete'){runBackend();}
+  else{window.addEventListener('load',runBackend);}
 
-  setInterval(function(){checkStatus(function(active){if(!active){var b=document.getElementById("wbm-schema-base");if(b)b.remove();var p=document.getElementById("wbm-product-schema");if(p)p.remove();}});},5*60*1000);
 })();
-<\/script>
-<!-- End Smart Universal Schema v22.3 -->`;
-}
-
-
+//]]>
+</script>
+<!-- End Smart Universal Schema v21 -->  
 
 function waReminderMsg(site) {
   const n = (site.numbers ? site.numbers[0] : site.businessPhone || "").replace(/\D/g, "");
