@@ -188,9 +188,10 @@ function genWBMScript(site) {
 })();
 <\/script>`;
 }
-  <!-- Smart Universal Schema | PRO v21 | Multi-Currency Global Edition -->
-    
-  <script id='wbm-schema-base' type='application/ld+json'>
+<!-- Smart Universal Schema | PRO v21 | Vercel & Netlify Production Edition -->
+
+<!-- STATIC BASE SCHEMA -->
+<script id="wbm-schema-base" type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "OnlineStore",
@@ -204,7 +205,8 @@ function genWBMScript(site) {
 }
 </script>
 
-<script id='wbm-product-schema' type='application/ld+json'>
+<!-- PRODUCT SCHEMA -->
+<script id="wbm-product-schema" type="application/ld+json">
 {
   "@context": "https://schema.org/",
   "@type": "Product",
@@ -258,7 +260,8 @@ function genWBMScript(site) {
 }
 </script>
 
-<script id='wbm-breadcrumb-schema' type='application/ld+json'>
+<!-- BREADCRUMB SCHEMA -->
+<script id="wbm-breadcrumb-schema" type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -268,7 +271,8 @@ function genWBMScript(site) {
 }
 </script>
 
-<script type='text/javascript'>
+<!-- DYNAMIC UPDATER -->
+<script type="text/javascript">
 //<![CDATA[
 (function(){
   var CFG={
@@ -286,24 +290,20 @@ function genWBMScript(site) {
     supabaseKey:"sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0"
   };
 
-  // GLOBAL MULTI-CURRENCY PRICE DETECTION
   function detectPrice(){
-    // 1. Core Meta Tags detection (Most reliable across Shopify, Woo, Blogger)
-    var metaPrice=document.querySelector('[property="product:price:amount"],[itemprop="price"],meta[name="twitter:data1"],meta[property="og:price:amount"]');
-    if(metaPrice){
-      var metaCur=document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"],meta[property="og:price:currency"]');
-      var p=(metaPrice.content||metaPrice.getAttribute("content")||metaPrice.innerText||"").replace(/[^0-9.,]/g,"");
-      if(p && p!=="0" && p!=="1"){
-        var c=(metaCur?metaCur.content||metaCur.getAttribute("content")||metaCur.innerText:"PKR")||"PKR";
-        return {price:p,currency:c.trim().toUpperCase()};
+    var metaPrice = document.querySelector('[property="product:price:amount"],[itemprop="price"],meta[name="twitter:data1"],meta[property="og:price:amount"]');
+    if (metaPrice) {
+      var metaCur = document.querySelector('[property="product:price:currency"],[itemprop="priceCurrency"],meta[property="og:price:currency"]');
+      var p = (metaPrice.content || metaPrice.getAttribute("content") || metaPrice.innerText || "").replace(/[^0-9.,]/g, "");
+      if (p && p !== "0" && p !== "1") {
+        var c = (metaCur ? metaCur.content || metaCur.getAttribute("content") || metaCur.innerText : "PKR") || "PKR";
+        return { price: p, currency: c.trim().toUpperCase() };
       }
     }
     
-    // 2. DOM Content Extraction
-    var postBody=document.querySelector(".post-body, .entry-content, .woocommerce-product-details__short-description, .summary, .product-single__description, .product-description, main, article");
-    var bodyText=postBody?postBody.innerText:document.body.innerText||"";
+    var postBody = document.querySelector(".post-body, .entry-content, .woocommerce-product-details__short-description, .summary, .product-single__description, .product-description, main, article");
+    var bodyText = postBody ? postBody.innerText : document.body.innerText || "";
     
-    // Currency Symbols Detection Matrix
     var symbolPatterns = [
       { sym: /\$\s?(\d+[\d,.]*)/, code: "USD" },
       { sym: /£\s?(\d+[\d,.]*)/, code: "GBP" },
@@ -317,98 +317,94 @@ function genWBMScript(site) {
       { sym: /AUD\s?(\d+[\d,.]*)/i, code: "AUD" }
     ];
 
-    for(var i=0; i < symbolPatterns.length; i++) {
+    for (var i = 0; i < symbolPatterns.length; i++) {
       var match = bodyText.match(symbolPatterns[i].sym);
-      if(match){
+      if (match) {
         var priceVal = match[1] || match[2];
-        if(priceVal) return {price:priceVal.replace(/,/g,""), currency:symbolPatterns[i].code};
+        if (priceVal) return { price: priceVal.replace(/,/g, ""), currency: symbolPatterns[i].code };
       }
     }
     
-    // Generic Keyword Fallback (Price: 1500 -> defaults to PKR or site standard)
-    var gen=bodyText.match(/(?:Price|قیمت|Price:)[\s:]?(\d+[\d,.]*)/i);
-    if(gen)return {price:gen[1].replace(/,/g,""),currency:"PKR"};
+    var gen = bodyText.match(/(?:Price|قیمت|Price:)[\s:]?(\d+[\d,.]*)/i);
+    if (gen) return { price: gen[1].replace(/,/g, ""), currency: "PKR" };
     
     return null;
   }
 
   function detectImage(){
-    var og=document.querySelector('meta[property="og:image"]');
-    if(og && og.content)return og.content;
-    var img=document.querySelector('.post-body img, .entry-content img, .woocommerce-product-gallery__image img, .product-single__photo');
-    if(img && img.src)return img.src;
-    return CFG.businessLogo||null;
+    var og = document.querySelector('meta[property="og:image"]');
+    if (og && og.content) return og.content;
+    var img = document.querySelector('.post-body img, .entry-content img, .woocommerce-product-gallery__image img, .product-single__photo');
+    if (img && img.src) return img.src;
+    return CFG.businessLogo || null;
   }
 
   function instantDeduct(){
     var path = location.pathname;
-    var isHome = (path==="/"||path===""||path==="/index.html");
-    if(isHome) return;
+    var isHome = (path === "/" || path === "" || path === "/index.html");
+    if (isHome) return;
 
-    var title=document.title.split("|")[0].split("-")[0].trim();
-    var img=detectImage();
-    var priceInfo=detectPrice();
-    var desc=(document.querySelector('meta[name="description"], meta[property="og:description"]')||{}).content||CFG.businessDesc;
+    var title = document.title.split("|")[0].split("-")[0].trim();
+    var img = detectImage();
+    var priceInfo = detectPrice();
+    var desc = (document.querySelector('meta[name="description"], meta[property="og:description"]') || {}).content || CFG.businessDesc;
 
-    var prodEl=document.getElementById("wbm-product-schema");
-    if(prodEl){
-      try{
-        var prodData=JSON.parse(prodEl.textContent);
-        prodData.name=title;
-        if(img)prodData.image=[img];
-        if(desc)prodData.description=desc;
-        prodData.url=window.location.href;
-        if(priceInfo){
-          prodData.offers.price=priceInfo.price;
-          prodData.offers.priceCurrency=priceInfo.currency;
-          // Dynamic Shipping and Returns Country Sync as per Currency
-          if(priceInfo.currency !== "PKR") {
+    var prodEl = document.getElementById("wbm-product-schema");
+    if (prodEl) {
+      try {
+        var prodData = JSON.parse(prodEl.textContent);
+        prodData.name = title;
+        if (img) prodData.image = [img];
+        if (desc) prodData.description = desc;
+        prodData.url = window.location.href;
+        if (priceInfo) {
+          prodData.offers.price = priceInfo.price;
+          prodData.offers.priceCurrency = priceInfo.currency;
+          if (priceInfo.currency !== "PKR") {
             prodData.offers.shippingDetails.shippingRate.currency = priceInfo.currency;
-            if(priceInfo.currency === "USD") {
+            if (priceInfo.currency === "USD") {
               prodData.offers.shippingDetails.shippingDestination.addressCountry = "US";
               prodData.offers.hasMerchantReturnPolicy.applicableCountry = "US";
-            } else if(priceInfo.currency === "GBP") {
+            } else if (priceInfo.currency === "GBP") {
               prodData.offers.shippingDetails.shippingDestination.addressCountry = "GB";
               prodData.offers.hasMerchantReturnPolicy.applicableCountry = "GB";
             }
           }
         }
-        prodEl.textContent=JSON.stringify(prodData);
+        prodEl.textContent = JSON.stringify(prodData);
         console.log("Global Auto-Deduct Active! Currency:", prodData.offers.priceCurrency, "| Price:", prodData.offers.price);
-      }catch(e){}
+      } catch (e) {}
     }
   }
 
-  // Fauri execution for Google bots
   instantDeduct();
 
   function checkStatus(cb){
-    fetch(CFG.supabaseUrl+"/rest/v1/schema_sites?select=enabled,payment,plan&id=eq."+CFG.siteId,{
-      headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}
-    }).then(function(r){return r.json();})
+    fetch(CFG.supabaseUrl + "/rest/v1/schema_sites?select=enabled,payment,plan&id=eq." + CFG.siteId, {
+      headers: { "apikey": CFG.supabaseKey, "Authorization": "Bearer " + CFG.supabaseKey }
+    }).then(function(r){ return r.json(); })
     .then(function(d){
-      if(d && d[0])cb(d[0].enabled===true && d[0].payment==="paid",d[0].plan||"basic");
-      else cb(false,"basic");
-    }).catch(function(){cb(true,CFG.plan);});
+      if (d && d[0]) cb(d[0].enabled === true && d[0].payment === "paid", d[0].plan || "basic");
+      else cb(false, "basic");
+    }).catch(function(){ cb(true, CFG.plan); });
   }
 
   function runBackend(){
-    checkStatus(function(active,plan){
-      if(!active){
-        var b=document.getElementById("wbm-schema-base");if(b)b.remove();
-        var p=document.getElementById("wbm-product-schema");if(p)p.remove();
+    checkStatus(function(active, plan){
+      if (!active) {
+        var b = document.getElementById("wbm-schema-base"); if (b) b.remove();
+        var p = document.getElementById("wbm-product-schema"); if (p) p.remove();
       }
     });
   }
 
-  if(document.readyState==='complete'){runBackend();}
-  else{window.addEventListener('load',runBackend);}
+  if (document.readyState === 'complete') { runBackend(); }
+  else { window.addEventListener('load', runBackend); }
 
 })();
 //]]>
 </script>
-<!-- End Smart Universal Schema v21 -->  
-
+<!-- End Universal Schema -->
 function waReminderMsg(site) {
   const n = (site.numbers ? site.numbers[0] : site.businessPhone || "").replace(/\D/g, "");
   if (!n) return "#";
