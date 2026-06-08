@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v21_session";
+const SESSION_KEY = "wbm_v22_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
@@ -62,6 +62,11 @@ const sb = {
   getLogs: (siteId) => sb.query("GET", `click_logs?${siteId ? `site_id=eq.${siteId}&` : ""}select=*&order=clicked_at.desc&limit=100`, null),
   getLogStats: () => sb.query("GET", "click_logs?select=site_id,site_name,country_name,country_code,plan,clicked_at", null),
   insertLog: (log) => sb.query("POST", "click_logs", log),
+  // Clients CRM
+  getClients: () => sb.query("GET", "clients?select=*&order=created_at.desc", null),
+  upsertClient: (c) => sb.query("POST", "clients?on_conflict=id", c),
+  updateClient: (id, data) => sb.query("PATCH", `clients?id=eq.${id}`, data),
+  deleteClient: (id) => sb.query("DELETE", `clients?id=eq.${id}`, null),
 };
 
 // ─── HELPERS ──────────────────────────────────────────────
@@ -557,6 +562,16 @@ body{background:#f0f4f8;font-family:'DM Sans','Segoe UI',sans-serif;color:#1e293
 
 .schema-type-badge{display:inline-block;background:#fdf4ff;color:#7c3aed;border:1px solid #e9d5ff;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;margin:2px;}
 
+.crm-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:12px;}
+.crm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.status-paid{background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;}
+.status-pending{background:#fef9c3;color:#ca8a04;border:1px solid #fde68a;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;}
+.status-overdue{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;}
+.client-row{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:all .2s;}
+.client-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.btn-crm{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;}
+.inp-crm:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.1);}
+.crm-badge{background:#fffbeb;color:#92400e;border:1px solid #fbbf24;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
 @media(min-width:900px){.sidebar{transform:translateX(0)!important;}.main-wrap{margin-left:230px!important;}.sidebar-overlay{display:none!important;}.menu-btn{display:none!important;}.stats-grid{grid-template-columns:repeat(6,1fr);}}
 @media(max-width:899px){.stats-grid{grid-template-columns:repeat(3,1fr);}.form-grid{grid-template-columns:1fr;}.page{padding:14px;}.plan-compare{grid-template-columns:1fr;}.mini-stats{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:500px){.stats-grid{grid-template-columns:repeat(2,1fr);}.page{padding:10px;}.card{padding:14px;}}
@@ -584,7 +599,7 @@ function Login({ onLogin }) {
             <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v21.0 — WhatsApp + Schema + Click Logs</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v22.0 — WhatsApp + Schema + Logs + CRM</div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
         {mode === "login" && (<>
@@ -665,6 +680,7 @@ function SiteCard({ site, onScript, onEdit, onDelete, onToggle, onPlan, onPaymen
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────
+const EF_CLIENT = { name: "", phone: "", email: "", website: "", plan: "basic", payment_status: "pending", payment_date: "", contract_details: "", invoice_number: "", renewal_date: "", notes: "" };
 const EF_WBM = { name: "", url: "", secretKey: "", numbers: [""], payment: "paid", plan: "basic" };
 const EF_SCHEMA = { name: "", url: "", payment: "paid", plan: "basic", businessName: "", businessType: "Organization", businessDesc: "", businessPhone: "", businessEmail: "", businessAddress: "", businessLogo: "", socialLinks: [] };
 
@@ -698,6 +714,13 @@ export default function App() {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logFilter, setLogFilter] = useState("all");
 
+  // CRM
+  const [clients, setClients] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [crmView, setCrmView] = useState("list");
+  const [clientForm, setClientForm] = useState({});
+  const [editingClient, setEditingClient] = useState(null);
+
   // Common
   const [toast, setToast] = useState(null);
   const [delItem, setDelItem] = useState(null);
@@ -712,11 +735,53 @@ export default function App() {
   const loadSchema = useCallback(async () => { setLoadingSchema(true); const d = await sb.getSchemaSites(); if (d) setSchemaSites(d.map(mapSchemaRow)); setLoadingSchema(false); }, []);
   const loadLogs = useCallback(async () => { setLoadingLogs(true); const d = await sb.getLogs(); if (d) setLogs(d); setLoadingLogs(false); }, []);
 
-  useEffect(() => { if (loggedIn) { loadWBM(); loadSchema(); loadLogs(); } }, [loggedIn, loadWBM, loadSchema, loadLogs]);
+  const loadClients = useCallback(async () => { setLoadingClients(true); const d = await sb.getClients(); if (d) setClients(d); setLoadingClients(false); }, []);
+  useEffect(() => { if (loggedIn) { loadWBM(); loadSchema(); loadLogs(); loadClients(); } }, [loggedIn, loadWBM, loadSchema, loadLogs, loadClients]);
 
   if (!loggedIn) return <Login onLogin={() => setLoggedIn(true)} />;
 
   function toast_(msg, t = "ok") { setToast({ msg, t }); setTimeout(() => setToast(null), 3500); }
+
+  // ── CRM Functions ──────────────────────────────────────
+  async function saveClient() {
+    if (!clientForm.name?.trim()) { toast_("Client naam zaroor bharein!", "err"); return; }
+    setSaving(true);
+    const id = editingClient ? editingClient.id : "c_" + Math.random().toString(36).substr(2, 8);
+    const data = {
+      id, name: clientForm.name.trim(), phone: clientForm.phone || "",
+      email: clientForm.email || "", website: clientForm.website || "",
+      plan: clientForm.plan || "basic", payment_status: clientForm.payment_status || "pending",
+      payment_date: clientForm.payment_date || "", contract_details: clientForm.contract_details || "",
+      invoice_number: clientForm.invoice_number || "", renewal_date: clientForm.renewal_date || "",
+      notes: clientForm.notes || "", updated_at: new Date().toISOString(),
+      created_at: editingClient ? editingClient.created_at : new Date().toISOString(),
+    };
+    let res;
+    if (editingClient) {
+      res = await sb.updateClient(id, data);
+    } else {
+      res = await sb.upsertClient(data);
+    }
+    if (res !== null) {
+      toast_(editingClient ? "Client update ho gaya! ✅" : "Client add ho gaya! ✅");
+      await loadClients();
+      setCrmView("list"); setEditingClient(null); setClientForm(EF_CLIENT);
+    } else toast_("Error — dobara try karein!", "err");
+    setSaving(false);
+  }
+
+  async function deleteClient(id) {
+    await sb.deleteClient(id);
+    setClients(p => p.filter(c => c.id !== id));
+    toast_("Client remove ho gaya!", "err");
+  }
+
+  function openEditClient(client) {
+    setEditingClient(client);
+    setClientForm({ ...client });
+    setCrmView("add");
+    setActiveModule("crm");
+  }
   function logout() { clearSession(); setLoggedIn(false); }
 
   // WBM functions
@@ -797,6 +862,7 @@ export default function App() {
   const toastBg = { ok: "#16a34a", err: "#dc2626", warn: "#d97706" };
   const isSchemaModule = activeModule === "schema";
   const isLogsModule = activeModule === "logs";
+  const isCrmModule = activeModule === "crm";
 
   const WBM_STATS = [
     { lb: "Total", val: sites.length, ic: "🌐", cl: "#2563eb" },
@@ -866,11 +932,19 @@ export default function App() {
           <button className={`nav-btn${activeModule === "logs" ? " active-logs" : ""}`} onClick={() => { setActiveModule("logs"); setNavOpen(false); loadLogs(); }}><span>📊</span> Click Logs</button>
         </nav>
 
+        <div className="divider" style={{ margin: "6px 14px" }} />
+        <div className="nav-section">👥 CRM</div>
+        <nav style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+          <button className={`nav-btn${activeModule === "crm" && crmView === "list" ? " active-logs" : ""}`} style={{ "--active-bg": "#fffbeb", "--active-color": "#92400e" }} onClick={() => { setActiveModule("crm"); setCrmView("list"); setNavOpen(false); loadClients(); }}><span>👥</span> Clients</button>
+          <button className={`nav-btn${activeModule === "crm" && crmView === "add" ? " active-logs" : ""}`} onClick={() => { setActiveModule("crm"); setCrmView("add"); setClientForm(EF_CLIENT); setNavOpen(false); }}><span>＋</span> Add Client</button>
+        </nav>
+
         <div style={{ flex: 1 }} />
         <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0" }}>
           <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 600, marginBottom: 3 }}>💬 {sites.filter(s => s.enabled).length} active WA sites</div>
           <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600, marginBottom: 3 }}>🔖 {schemaSites.filter(s => s.enabled).length} active schemas</div>
-          <div style={{ fontSize: 11, color: "#0891b2", fontWeight: 600, marginBottom: 10 }}>📊 {logs.length} total clicks</div>
+          <div style={{ fontSize: 11, color: "#0891b2", fontWeight: 600, marginBottom: 3 }}>📊 {logs.length} total clicks</div>
+          <div style={{ fontSize: 11, color: "#d97706", fontWeight: 600, marginBottom: 10 }}>👥 {clients.length} clients</div>
           <button onClick={logout} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 9, padding: "8px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>🚪 Logout</button>
         </div>
       </aside>
@@ -881,13 +955,13 @@ export default function App() {
           {!isWide && <button className="menu-btn btn-g" style={{ padding: "8px 12px", fontSize: 18 }} onClick={() => setNavOpen(true)}>☰</button>}
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              {isLogsModule ? "📊 Click Logs" : isSchemaModule ? "🔖 Schema Manager" : "💬 WhatsApp Manager"}
+              {activeModule === "crm" ? "👥 Client CRM" : isLogsModule ? "📊 Click Logs" : isSchemaModule ? "🔖 Schema Manager" : "💬 WhatsApp Manager"}
               <span className="live-badge">● LIVE</span>
               {!isSchemaModule && !isLogsModule && <span className="geo-badge">🌍 GEO</span>}
               {isLogsModule && <span className="logs-badge">REAL-TIME</span>}
             </div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-              {isLogsModule ? `${logs.length} total clicks · ${uniqueSites} sites · ${todayClicks} today` : isSchemaModule ? (currentView === "dashboard" ? `${schemaSites.filter(s => s.enabled).length} active` : selSchema?.name) : (currentView === "dashboard" ? `${sites.filter(s => s.enabled).length} active · Geo ON` : selWBM?.name || "Naya website")}
+              {activeModule === "crm" ? `${clients.length} clients · ${clients.filter(c => c.payment_status === "paid").length} paid · ${clients.filter(c => c.payment_status === "pending").length} pending` : isLogsModule ? `${logs.length} total clicks · ${uniqueSites} sites · ${todayClicks} today` : isSchemaModule ? (currentView === "dashboard" ? `${schemaSites.filter(s => s.enabled).length} active` : selSchema?.name) : (currentView === "dashboard" ? `${sites.filter(s => s.enabled).length} active · Geo ON` : selWBM?.name || "Naya website")}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -1096,8 +1170,44 @@ export default function App() {
               </div>
             </>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
+
+          {/* ══ CRM MODULE ══ */}
+          {isCrmModule && crmView === "list" && (
+            <>
+              {/* Stats */}
+              <div className="stats-grid">
+                {[
+                  { lb: "Total Clients", val: clients.length, ic: "👥", cl: "#d97706" },
+                  { lb: "Paid", val: clients.filter(c => c.payment_status === "paid").length, ic: "✅", cl: "#16a34a" },
+                  { lb: "Pending", val: clients.filter(c => c.payment_status === "pending").length, ic: "⏳", cl: "#ca8a04" },
+                  { lb: "Overdue", val: clients.filter(c => c.payment_status === "overdue").length, ic: "⚠️", cl: "#dc2626" },
+                  { lb: "Basic Plan", val: clients.filter(c => c.plan === "basic").length, ic: "🔵", cl: "#0369a1" },
+                  { lb: "Pro Plan", val: clients.filter(c => c.plan === "pro").length, ic: "🚀", cl: "#7c3aed" },
+                ].map(s => (
+                  <div key={s.lb} className="stat-card">
+                    <span style={{ fontSize: 22 }}>{s.ic}</span>
+                    <span style={{ fontSize: 24, fontWeight: 800, color: s.cl, lineHeight: 1 }}>{s.val}</span>
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.lb}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+                  <div className="card-title" style={{ margin: 0 }}>👥 CLIENTS ({clients.length})</div>
+                  <button className="btn-crm" onClick={() => { setCrmView("add"); setClientForm(EF_CLIENT); setEditingClient(null); }}>+ Add Client</button>
+                </div>
+                {loadingClients ? (
+                  <div className="loading"><div className="spinner" style={{ borderTopColor: "#d97706" }} /></div>
+                ) : clients.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: 40 }}>
+                    <div style={{ fontSize: 48, marginBottom: 14 }}>👥</div>
+                    <p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi client nahi!</p>
+                    <button className="btn-crm" onClick={() => { setCrmView("add"); setClientForm(EF_CLIENT); setEditingClient(null); }}>+ Add Client</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {clients.map(client => (
+                      <div key={client.id} className="client-row">
+                        {/* Header */}
+                        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 
