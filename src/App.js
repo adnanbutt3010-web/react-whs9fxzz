@@ -1210,4 +1210,134 @@ export default function App() {
                     {clients.map(client => (
                       <div key={client.id} className="client-row">
                         {/* Header */}
-                        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 
+                        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{client.name}</span>
+                              <span className={client.payment_status === "paid" ? "status-paid" : client.payment_status === "overdue" ? "status-overdue" : "status-pending"}>
+                                {client.payment_status === "paid" ? "✅ Paid" : client.payment_status === "overdue" ? "⚠️ Overdue" : "⏳ Pending"}
+                              </span>
+                              <span className={client.plan === "pro" ? "badge-pro" : "badge-basic"}>{client.plan === "pro" ? "🚀 Pro" : "🔵 Basic"}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{client.phone} {client.email ? `· ${client.email}` : ""}</div>
+                          </div>
+                        </div>
+
+                        {/* Details */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {client.website && <span className="chip">🌐 {client.website}</span>}
+                          {client.invoice_number && <span className="chip">🧾 Invoice: {client.invoice_number}</span>}
+                          {client.payment_date && <span className="chip">💰 Paid: {client.payment_date}</span>}
+                          {client.renewal_date && <span className="chip">🔄 Renewal: {client.renewal_date}</span>}
+                        </div>
+
+                        {/* Contract */}
+                        {client.contract_details && (
+                          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#475569" }}>
+                            📋 {client.contract_details}
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {client.notes && (
+                          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#92400e" }}>
+                            📝 {client.notes}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          <button className="btn-a" onClick={() => openEditClient(client)}>✏️ Edit</button>
+                          <button className="btn-a" style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }} onClick={() => deleteClient(client.id)}>🗑 Delete</button>
+                          {client.phone && <button className="btn-a" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#86efac" }} onClick={() => { const msg = `Assalam o Alaikum ${client.name}!\n\nAapki WBManager service ki payment pending hai.\n\nKripya jald payment karein.\n\nShukriya!`; window.open(`https://wa.me/${client.phone.replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`, "_blank"); }}>📤 WA Reminder</button>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ══ CRM ADD/EDIT ══ */}
+          {isCrmModule && crmView === "add" && (
+            <div className="card">
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b", marginBottom: 20 }}>
+                {editingClient ? "✏️ Client Edit karein" : "➕ Naya Client Add karein"}
+              </div>
+
+              <div className="form-grid">
+                <div className="fg">
+                  <label className="lbl">Client Name *</label>
+                  <input className="inp" placeholder="Ahmed Ali" value={clientForm.name || ""} onChange={e => setClientForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Phone Number</label>
+                  <input className="inp" placeholder="+92 300 1234567" value={clientForm.phone || ""} onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Email</label>
+                  <input className="inp" placeholder="client@email.com" value={clientForm.email || ""} onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Website</label>
+                  <input className="inp" placeholder="https://clientsite.com" value={clientForm.website || ""} onChange={e => setClientForm(f => ({ ...f, website: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Invoice Number</label>
+                  <input className="inp" placeholder="INV-001" value={clientForm.invoice_number || ""} onChange={e => setClientForm(f => ({ ...f, invoice_number: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Payment Date</label>
+                  <input className="inp" type="date" value={clientForm.payment_date || ""} onChange={e => setClientForm(f => ({ ...f, payment_date: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Renewal Date</label>
+                  <input className="inp" type="date" value={clientForm.renewal_date || ""} onChange={e => setClientForm(f => ({ ...f, renewal_date: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label className="lbl">Plan</label>
+                  <select className="inp" value={clientForm.plan || "basic"} onChange={e => setClientForm(f => ({ ...f, plan: e.target.value }))}>
+                    <option value="basic">🔵 Basic — PKR 499/mo</option>
+                    <option value="pro">🚀 Pro — PKR 999/mo</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Payment Status */}
+              <div className="fg">
+                <label className="lbl">Payment Status</label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {["paid", "pending", "overdue"].map(s => (
+                    <button key={s} onClick={() => setClientForm(f => ({ ...f, payment_status: s }))}
+                      style={{ borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontWeight: 700, fontSize: 13, border: "2px solid", borderColor: clientForm.payment_status === s ? (s === "paid" ? "#86efac" : s === "overdue" ? "#fecaca" : "#fde68a") : "#e2e8f0", background: clientForm.payment_status === s ? (s === "paid" ? "#dcfce7" : s === "overdue" ? "#fef2f2" : "#fef9c3") : "#f8fafc", color: clientForm.payment_status === s ? (s === "paid" ? "#16a34a" : s === "overdue" ? "#dc2626" : "#ca8a04") : "#64748b" }}>
+                      {s === "paid" ? "✅ Paid" : s === "overdue" ? "⚠️ Overdue" : "⏳ Pending"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contract */}
+              <div className="fg">
+                <label className="lbl">Contract Details</label>
+                <textarea className="inp" rows={3} placeholder="Contract terms, service details..." value={clientForm.contract_details || ""} onChange={e => setClientForm(f => ({ ...f, contract_details: e.target.value }))} style={{ resize: "vertical" }} />
+              </div>
+
+              {/* Notes */}
+              <div className="fg" style={{ marginBottom: 0 }}>
+                <label className="lbl">Notes</label>
+                <textarea className="inp" rows={2} placeholder="Extra notes..." value={clientForm.notes || ""} onChange={e => setClientForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: "vertical" }} />
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button className="btn-g" onClick={() => { setCrmView("list"); setEditingClient(null); }}>Cancel</button>
+                <button className="btn-crm" onClick={saveClient} disabled={saving}>{saving ? "Saving..." : editingClient ? "Update Client" : "Save Client"}</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
