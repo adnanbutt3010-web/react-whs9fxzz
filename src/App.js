@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v23_session";
+const SESSION_KEY = "wbm_v24_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
@@ -613,7 +613,7 @@ function Login({ onLogin }) {
             <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>ðŸ“Š</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v23.0 â€” WhatsApp + Schema + Logs + CRM</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v23.0 | WA + Schema + Logs + CRM</div>
         </div>
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>âš ï¸ {err}</div>}
         {mode === "login" && (<>
@@ -621,7 +621,7 @@ function Login({ onLogin }) {
           <div className="fg" style={{ marginBottom: 8 }}><label className="lbl">PASSWORD</label><div style={{ position: "relative" }}><input className="inp" style={{ paddingRight: 44 }} type={show ? "text" : "password"} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={p} onChange={e => { setP(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && doLogin()} /><span onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 18 }}>{show ? "ðŸ™ˆ" : "ðŸ‘"}</span></div></div>
           <div style={{ textAlign: "right", marginBottom: 20 }}><span onClick={() => { setMode("recover"); setErr(""); }} style={{ fontSize: 12, color: "#16a34a", cursor: "pointer", fontWeight: 600 }}>ðŸ”‘ Forgot Password?</span></div>
           <button className="btn-p" style={{ width: "100%", padding: 13, fontSize: 15, borderRadius: 10 }} onClick={doLogin}>Login â†’</button>
-          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#0369a1" }}>ðŸ• Auto-logout: 30 min idle | ðŸ”‘ Recovery: WBM-RECOVERY-2026-ADNAN</div>
+          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#0369a1" }}>Auto-logout: 30 min idle | Recovery: WBM-RECOVERY-2026-ADNAN</div>
         </>)}
         {mode === "recover" && (<>
           <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>ðŸ”‘ <b style={{ fontFamily: "monospace" }}>WBM-RECOVERY-2026-ADNAN</b></div>
@@ -676,8 +676,10 @@ function SiteCard({ site, onScript, onEdit, onDelete, onToggle, onPlan, onPaymen
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{[`ðŸ“… ${fmtDate(site.installedAt || site.createdAt)}`, `ðŸ• ${timeAgo(site.installedAt || site.createdAt)}`].map(c => <span key={c} className="chip">{c}</span>)}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Plan:</span>
-        <button className={`plan-btn${site.plan === "basic" ? " basic-active" : ""}`} onClick={() => onPlan(site.id, "basic")}>ðŸ”µ Basic</button>
-        <button className={`plan-btn${site.plan === "pro" ? " pro-active" : ""}`} onClick={() => onPlan(site.id, "pro")}>ðŸš€ Pro</button>
+        <button className="plan-btn" style={site.plan==="simple"?{background:"#f1f5f9",color:"#475569",borderColor:"#94a3b8",borderWidth:2}:{}} onClick={() => onPlan(site.id, "simple")}>Simple</button>
+        <button className={`plan-btn${site.plan === "basic" ? " basic-active" : ""}`} onClick={() => onPlan(site.id, "basic")}>Basic</button>
+        <button className={`plan-btn${site.plan === "pro" ? " pro-active" : ""}`} onClick={() => onPlan(site.id, "pro")}>Pro</button>
+        <button className="plan-btn" style={site.plan==="advance"?{background:"linear-gradient(135deg,#fdf4ff,#ede9fe)",color:"#6d28d9",borderColor:"#c4b5fd",borderWidth:2}:{}} onClick={() => onPlan(site.id, "advance")}>Advance</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Payment:</span>
