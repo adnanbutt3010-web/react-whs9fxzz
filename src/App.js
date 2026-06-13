@@ -5,39 +5,39 @@ const SUPABASE_KEY = "sb_publishable_3VMO11omiSHPr-1Zss6zTg_reswd0E0";
 const ADMIN_USER = "admin";
 const ADMIN_PASS_KEY = "wbm_pass";
 const DEFAULT_PASS = "wbm@2026";
-const SESSION_KEY = "wbm_v24_session";
+const SESSION_KEY = "wbm_v25_session";
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const RECOVERY_CODE = "WBM-RECOVERY-2026-ADNAN";
 
 const COUNTRY_CODES = {
-  "+92": { name: "Pakistan", flag: "ðŸ‡µðŸ‡°", code: "PK" },
-  "+971": { name: "UAE", flag: "ðŸ‡¦ðŸ‡ª", code: "AE" },
-  "+966": { name: "Saudi Arabia", flag: "ðŸ‡¸ðŸ‡¦", code: "SA" },
-  "+965": { name: "Kuwait", flag: "ðŸ‡°ðŸ‡¼", code: "KW" },
-  "+968": { name: "Oman", flag: "ðŸ‡´ðŸ‡²", code: "OM" },
-  "+973": { name: "Bahrain", flag: "ðŸ‡§ðŸ‡­", code: "BH" },
-  "+974": { name: "Qatar", flag: "ðŸ‡¶ðŸ‡¦", code: "QA" },
-  "+1": { name: "USA/Canada", flag: "ðŸ‡ºðŸ‡¸", code: "US" },
-  "+44": { name: "UK", flag: "ðŸ‡¬ðŸ‡§", code: "GB" },
-  "+91": { name: "India", flag: "ðŸ‡®ðŸ‡³", code: "IN" },
-  "+90": { name: "Turkey", flag: "ðŸ‡¹ðŸ‡·", code: "TR" },
-  "+61": { name: "Australia", flag: "ðŸ‡¦ðŸ‡º", code: "AU" },
-  "+49": { name: "Germany", flag: "ðŸ‡©ðŸ‡ª", code: "DE" },
-  "+33": { name: "France", flag: "ðŸ‡«ðŸ‡·", code: "FR" },
-  "+60": { name: "Malaysia", flag: "ðŸ‡²ðŸ‡¾", code: "MY" },
-  "+65": { name: "Singapore", flag: "ðŸ‡¸ðŸ‡¬", code: "SG" },
-  "+20": { name: "Egypt", flag: "ðŸ‡ªðŸ‡¬", code: "EG" },
-  "+55": { name: "Brazil", flag: "ðŸ‡§ðŸ‡·", code: "BR" },
+  "+92": { name: "Pakistan", flag: "🇵🇰", code: "PK" },
+  "+971": { name: "UAE", flag: "🇦🇪", code: "AE" },
+  "+966": { name: "Saudi Arabia", flag: "🇸🇦", code: "SA" },
+  "+965": { name: "Kuwait", flag: "🇰🇼", code: "KW" },
+  "+968": { name: "Oman", flag: "🇴🇲", code: "OM" },
+  "+973": { name: "Bahrain", flag: "🇧🇭", code: "BH" },
+  "+974": { name: "Qatar", flag: "🇶🇦", code: "QA" },
+  "+1": { name: "USA/Canada", flag: "🇺🇸", code: "US" },
+  "+44": { name: "UK", flag: "🇬🇧", code: "GB" },
+  "+91": { name: "India", flag: "🇮🇳", code: "IN" },
+  "+90": { name: "Turkey", flag: "🇹🇷", code: "TR" },
+  "+61": { name: "Australia", flag: "🇦🇺", code: "AU" },
+  "+49": { name: "Germany", flag: "🇩🇪", code: "DE" },
+  "+33": { name: "France", flag: "🇫🇷", code: "FR" },
+  "+60": { name: "Malaysia", flag: "🇲🇾", code: "MY" },
+  "+65": { name: "Singapore", flag: "🇸🇬", code: "SG" },
+  "+20": { name: "Egypt", flag: "🇪🇬", code: "EG" },
+  "+55": { name: "Brazil", flag: "🇧🇷", code: "BR" },
 };
 
 function getNumberInfo(num) {
   const clean = num.replace(/\s/g, "");
   const prefixes = Object.keys(COUNTRY_CODES).sort((a, b) => b.length - a.length);
   for (const p of prefixes) { if (clean.startsWith(p)) return COUNTRY_CODES[p]; }
-  return { name: "Other", flag: "ðŸŒ", code: "XX" };
+  return { name: "Other", flag: "🌍", code: "XX" };
 }
 
-// â”€â”€â”€ SUPABASE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SUPABASE ─────────────────────────────────────────────
 const sb = {
   async query(method, path, body) {
     try {
@@ -69,20 +69,20 @@ const sb = {
   deleteClient: (id) => sb.query("DELETE", `clients?id=eq.${id}`, null),
 };
 
-// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HELPERS ──────────────────────────────────────────────
 function genId() { return "s_" + Math.random().toString(36).substr(2, 8); }
-function fmtDate(iso) { if (!iso) return "â€”"; return new Date(iso).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" }); }
-function fmtDateTime(iso) { if (!iso) return "â€”"; return new Date(iso).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
-function timeAgo(iso) { if (!iso) return "â€”"; const d = Math.floor((Date.now() - new Date(iso)) / 86400000); if (d === 0) return "Today"; if (d === 1) return "Yesterday"; if (d < 30) return `${d}d ago`; return `${Math.floor(d / 30)}mo ago`; }
+function fmtDate(iso) { if (!iso) return "—"; return new Date(iso).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" }); }
+function fmtDateTime(iso) { if (!iso) return "—"; return new Date(iso).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+function timeAgo(iso) { if (!iso) return "—"; const d = Math.floor((Date.now() - new Date(iso)) / 86400000); if (d === 0) return "Today"; if (d === 1) return "Yesterday"; if (d < 30) return `${d}d ago`; return `${Math.floor(d / 30)}mo ago`; }
 function mapRow(r) { return { id: r.id, name: r.name, url: r.url, enabled: r.enabled, payment: r.payment, numbers: r.numbers || [], secretKey: r.secret_key || "", installedAt: r.installed_at, lastActive: r.last_active, clicks: r.clicks || 0, impressions: r.impressions || 0, verified: r.verified || false, plan: r.plan || "basic" }; }
 function mapSchemaRow(r) { return { id: r.id, name: r.name, url: r.url, enabled: r.enabled, payment: r.payment, plan: r.plan || "basic", businessName: r.business_name || "", businessType: r.business_type || "Organization", businessDesc: r.business_desc || "", businessPhone: r.business_phone || "", businessEmail: r.business_email || "", businessAddress: r.business_address || "", businessLogo: r.business_logo || "", socialLinks: r.social_links || [], createdAt: r.created_at, verified: r.verified || false }; }
 
-// â”€â”€â”€ SESSION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SESSION ──────────────────────────────────────────────
 function getSession() { try { const s = localStorage.getItem(SESSION_KEY); if (!s) return null; const p = JSON.parse(s); if (Date.now() - p.time > SESSION_TIMEOUT) { localStorage.removeItem(SESSION_KEY); return null; } return p; } catch (e) { return null; } }
 function setSession() { localStorage.setItem(SESSION_KEY, JSON.stringify({ time: Date.now() })); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
-// â”€â”€â”€ WBM SCRIPT v16 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── WBM SCRIPT v16 ───────────────────────────────────────
 function genWBMScript(site) {
   if (!site.enabled || site.payment !== "paid") return `<!-- WBManager | ${site.name} | INACTIVE -->\n<script>\n(function(){var el=document.getElementById("wbm-fab");if(el)el.remove();})();\n<\/script>`;
   const nums = JSON.stringify(site.numbers);
@@ -130,7 +130,7 @@ function genWBMScript(site) {
   function pickNumber(code){var g=groupByCountry(CFG.numbers);var keys=Object.keys(g);var home=keys[0];var mx=0;keys.forEach(function(k){if((g[k]||[]).length>mx){mx=(g[k]||[]).length;home=k;}});if(code){var c=code.startsWith("+")?code:"+"+code;if(g[c]&&g[c].length){var a=g[c];return a[Math.floor(Math.random()*a.length)];}}if(g[home]&&g[home].length){var a2=g[home];return a2[Math.floor(Math.random()*a2.length)];}return CFG.numbers[Math.floor(Math.random()*CFG.numbers.length)];}
   function checkStatus(cb){fetch(CFG.supabaseUrl+"/rest/v1/sites?select=enabled,payment,plan\x26id=eq."+CFG.siteId,{headers:{"apikey":CFG.supabaseKey,"Authorization":"Bearer "+CFG.supabaseKey}}).then(function(r){return r.json();}).then(function(d){if(d&&d[0])cb(d[0].enabled===true&&d[0].payment==="paid",d[0].plan||"basic");else cb(false,"basic");}).catch(function(){cb(true,CFG.plan);});}
 
-  // â”€â”€ Log click to Supabase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Log click to Supabase ────────────────────────────────
   function logClick(countryCode,countryName,plan){
     var title=getTitle();
     var url=getLink();
@@ -177,10 +177,15 @@ function genWBMScript(site) {
     var msg=buildMsg(plan);
     var wrap=document.createElement("div");wrap.id="wbm-fab";
     var a=document.createElement("a");
-    a.href="https://wa.me/"+number.replace(/\\D/g,"")+"?text="+encodeURIComponent(msg);
+    // Simple plan: no text parameter - just open WhatsApp
+    var cleanNum=number.replace(/\\D/g,"");
+    if(plan==="simple"){
+      a.href="https://wa.me/"+cleanNum;
+    } else {
+      a.href="https://wa.me/"+cleanNum+"?text="+encodeURIComponent(msg);
+    }
     a.target="_blank";a.rel="noopener noreferrer";
     a.innerHTML=WA_SVG;
-    // Log click when button is clicked
     a.addEventListener("click",function(){logClick(_countryCode,_countryName,plan);});
     wrap.appendChild(a);document.body.appendChild(wrap);
   }
@@ -208,7 +213,7 @@ function genWBMScript(site) {
 <\/script>`;
 }
 
-// â”€â”€â”€ SCHEMA SCRIPT (Smart Universal v22.3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SCHEMA SCRIPT (Smart Universal v22.3) ───────────────
 function genSchemaScript(site) {
   if (!site.enabled || site.payment !== "paid") {
     return `<!-- Schema Manager | ${site.name} | INACTIVE -->
@@ -345,11 +350,11 @@ function genSchemaScript(site) {
     var bodyText=postBody?postBody.innerText:document.body.innerText||"";
     var symbolPatterns=[
       {sym:/\$\s?(\d+[\d,.]*)/,code:"USD"},
-      {sym:/Â£\s?(\d+[\d,.]*)/,code:"GBP"},
-      {sym:/â‚¬\s?(\d+[\d,.]*)/,code:"EUR"},
-      {sym:/Â¥\s?(\d+[\d,.]*)/,code:"JPY"},
+      {sym:/£\s?(\d+[\d,.]*)/,code:"GBP"},
+      {sym:/€\s?(\d+[\d,.]*)/,code:"EUR"},
+      {sym:/¥\s?(\d+[\d,.]*)/,code:"JPY"},
       {sym:/(?:RS|PKR)[\s:]?(\d+[\d,.]*)|([\d,]+)[\s:]?(?:PKR|RS)/i,code:"PKR"},
-      {sym:/(?:INR|â‚¹)[\s:]?(\d+[\d,.]*)/i,code:"INR"},
+      {sym:/(?:INR|₹)[\s:]?(\d+[\d,.]*)/i,code:"INR"},
       {sym:/(?:AED|DH)[\s:]?(\d+[\d,.]*)/i,code:"AED"},
       {sym:/SAR[\s:]?(\d+[\d,.]*)/i,code:"SAR"},
       {sym:/CAD\s?(\d+[\d,.]*)/i,code:"CAD"},
@@ -359,7 +364,7 @@ function genSchemaScript(site) {
       var match=bodyText.match(symbolPatterns[i].sym);
       if(match){var priceVal=match[1]||match[2];if(priceVal)return {price:priceVal.replace(/,/g,""),currency:symbolPatterns[i].code};}
     }
-    var gen=bodyText.match(/(?:Price|Ù‚ÛŒÙ…Øª|Price:)\s?(\d+[\d,.]*)/i);
+    var gen=bodyText.match(/(?:Price|قیمت|Price:)\s?(\d+[\d,.]*)/i);
     if(gen)return {price:gen[1].replace(/,/g,""),currency:"PKR"};
     return null;
   }
@@ -452,11 +457,11 @@ function genSchemaScript(site) {
 function waReminderMsg(site) {
   const n = (site.numbers ? site.numbers[0] : site.businessPhone || "").replace(/\D/g, "");
   if (!n) return "#";
-  const msg = `Assalam o Alaikum! ðŸ‘‹\n\nâš ï¸ *Service Payment Pending*\n\nAapki website *${site.url}* ki service payment pending hai.\n\nKripya jald payment karein.\n\nShukriya!\nâ€” WBManager Team`;
+  const msg = `Assalam o Alaikum! 👋\n\n⚠️ *Service Payment Pending*\n\nAapki website *${site.url}* ki service payment pending hai.\n\nKripya jald payment karein.\n\nShukriya!\n— WBManager Team`;
   return `https://wa.me/${n}?text=${encodeURIComponent(msg)}`;
 }
 
-// â”€â”€â”€ CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CSS ──────────────────────────────────────────────────
 const CSS = `
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#f0f4f8;font-family:'DM Sans','Segoe UI',sans-serif;color:#1e293b;}
@@ -547,8 +552,8 @@ body{background:#f0f4f8;font-family:'DM Sans','Segoe UI',sans-serif;color:#1e293
 .plan-card.basic .plan-price{color:#0369a1;}
 .plan-card.pro .plan-price{color:#d97706;}
 .plan-feature{font-size:11px;color:#64748b;margin-bottom:3px;}
-.plan-feature::before{content:"âœ“ ";color:#16a34a;font-weight:700;}
-.plan-feature.no::before{content:"âœ— ";color:#94a3b8;}
+.plan-feature::before{content:"✓ ";color:#16a34a;font-weight:700;}
+.plan-feature.no::before{content:"✗ ";color:#94a3b8;}
 
 /* Click Logs Table */
 .logs-table{width:100%;border-collapse:collapse;font-size:12px;}
@@ -591,9 +596,16 @@ body{background:#f0f4f8;font-family:'DM Sans','Segoe UI',sans-serif;color:#1e293
 @media(max-width:500px){.stats-grid{grid-template-columns:repeat(2,1fr);}.page{padding:10px;}.card{padding:14px;}}
 `;
 
-function injectCSS() { if (document.getElementById("wbm-css")) return; const s = document.createElement("style"); s.id = "wbm-css"; s.textContent = CSS; document.head.appendChild(s); }
+function injectCSS() {
+  if (document.getElementById("wbm-css")) return;
+  // Ensure UTF-8 charset
+  if (!document.querySelector('meta[charset]') && !document.querySelector('meta[http-equiv="Content-Type"]')) {
+    const m = document.createElement("meta"); m.charset = "UTF-8"; document.head.prepend(m);
+  }
+  const s = document.createElement("style"); s.id = "wbm-css"; s.textContent = CSS; document.head.appendChild(s);
+}
 
-// â”€â”€â”€ LOGIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LOGIN ─────────────────────────────────────────────────
 function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [u, setU] = useState(""); const [p, setP] = useState("");
@@ -602,52 +614,52 @@ function Login({ onLogin }) {
   const savedPass = localStorage.getItem(ADMIN_PASS_KEY) || DEFAULT_PASS;
   function doLogin() { setErr(""); if (!u.trim() || !p.trim()) { setErr("Username aur password zaroor bharein!"); return; } if (u.trim() === ADMIN_USER && p === savedPass) { setSession(); onLogin(); } else setErr("Username ya password galat hai!"); }
   function doRecover() { setErr(""); if (rec.trim() === RECOVERY_CODE) setMode("newpass"); else setErr("Recovery code galat hai!"); }
-  function doNewPass() { setErr(""); if (np.length < 6) { setErr("Min 6 characters!"); return; } if (np !== cp) { setErr("Passwords match nahi!"); return; } localStorage.setItem(ADMIN_PASS_KEY, np); setMode("login"); alert("âœ… Password change ho gaya!"); }
+  function doNewPass() { setErr(""); if (np.length < 6) { setErr("Min 6 characters!"); return; } if (np !== cp) { setErr("Passwords match nahi!"); return; } localStorage.setItem(ADMIN_PASS_KEY, np); setMode("login"); alert("✅ Password change ho gaya!"); }
   return (
     <div className="login-wrap">
       <div className="login-card">
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 12 }}>
-            <div style={{ width: 40, height: 40, background: "#dcfce7", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>ðŸ’¬</div>
-            <div style={{ width: 40, height: 40, background: "#fdf4ff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>ðŸ”–</div>
-            <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>ðŸ“Š</div>
+            <div style={{ width: 40, height: 40, background: "#dcfce7", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#16a34a", fontFamily: "Arial, sans-serif" }}>WA</div>
+            <div style={{ width: 40, height: 40, background: "#fdf4ff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#7c3aed", fontFamily: "Arial, sans-serif" }}>SC</div>
+            <div style={{ width: 40, height: 40, background: "#ecfeff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#0891b2", fontFamily: "Arial, sans-serif" }}>AN</div>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>WBManager Suite</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v23.0 | WA + Schema + Logs + CRM</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>v24.0</div>
         </div>
-        {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>âš ï¸ {err}</div>}
+        {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "11px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {err}</div>}
         {mode === "login" && (<>
           <div className="fg"><label className="lbl">USERNAME</label><input className="inp" placeholder="admin" value={u} onChange={e => { setU(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && doLogin()} /></div>
-          <div className="fg" style={{ marginBottom: 8 }}><label className="lbl">PASSWORD</label><div style={{ position: "relative" }}><input className="inp" style={{ paddingRight: 44 }} type={show ? "text" : "password"} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={p} onChange={e => { setP(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && doLogin()} /><span onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 18 }}>{show ? "ðŸ™ˆ" : "ðŸ‘"}</span></div></div>
-          <div style={{ textAlign: "right", marginBottom: 20 }}><span onClick={() => { setMode("recover"); setErr(""); }} style={{ fontSize: 12, color: "#16a34a", cursor: "pointer", fontWeight: 600 }}>ðŸ”‘ Forgot Password?</span></div>
-          <button className="btn-p" style={{ width: "100%", padding: 13, fontSize: 15, borderRadius: 10 }} onClick={doLogin}>Login â†’</button>
+          <div className="fg" style={{ marginBottom: 8 }}><label className="lbl">PASSWORD</label><div style={{ position: "relative" }}><input className="inp" style={{ paddingRight: 44 }} type={show ? "text" : "password"} placeholder="••••••••" value={p} onChange={e => { setP(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && doLogin()} /><span onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 18 }}>{show ? "🙈" : "👁"}</span></div></div>
+          <div style={{ textAlign: "right", marginBottom: 20 }}><span onClick={() => { setMode("recover"); setErr(""); }} style={{ fontSize: 12, color: "#16a34a", cursor: "pointer", fontWeight: 600 }}>🔑 Forgot Password?</span></div>
+          <button className="btn-p" style={{ width: "100%", padding: 13, fontSize: 15, borderRadius: 10 }} onClick={doLogin}>Login →</button>
           <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#0369a1" }}>Auto-logout: 30 min idle | Recovery: WBM-RECOVERY-2026-ADNAN</div>
         </>)}
         {mode === "recover" && (<>
-          <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>ðŸ”‘ <b style={{ fontFamily: "monospace" }}>WBM-RECOVERY-2026-ADNAN</b></div>
+          <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>🔑 <b style={{ fontFamily: "monospace" }}>WBM-RECOVERY-2026-ADNAN</b></div>
           <div className="fg"><label className="lbl">RECOVERY CODE</label><input className="inp" value={rec} onChange={e => { setRec(e.target.value); setErr(""); }} /></div>
-          <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10, marginBottom: 10 }} onClick={doRecover}>Verify â†’</button>
-          <button className="btn-g" style={{ width: "100%", padding: 10, borderRadius: 10 }} onClick={() => { setMode("login"); setErr(""); }}>â† Back</button>
+          <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10, marginBottom: 10 }} onClick={doRecover}>Verify →</button>
+          <button className="btn-g" style={{ width: "100%", padding: 10, borderRadius: 10 }} onClick={() => { setMode("login"); setErr(""); }}>← Back</button>
         </>)}
         {mode === "newpass" && (<>
-          <div className="success-box">âœ… Verified! Naya password set karein.</div>
+          <div className="success-box">✅ Verified! Naya password set karein.</div>
           <div className="fg"><label className="lbl">NEW PASSWORD</label><input className="inp" type="password" value={np} onChange={e => { setNp(e.target.value); setErr(""); }} /></div>
           <div className="fg" style={{ marginBottom: 20 }}><label className="lbl">CONFIRM</label><input className="inp" type="password" value={cp} onChange={e => { setCp(e.target.value); setErr(""); }} /></div>
-          <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10 }} onClick={doNewPass}>Set Password â†’</button>
+          <button className="btn-p" style={{ width: "100%", padding: 12, borderRadius: 10 }} onClick={doNewPass}>Set Password →</button>
         </>)}
       </div>
     </div>
   );
 }
 
-// â”€â”€â”€ NUMBER GROUPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── NUMBER GROUPS ────────────────────────────────────────
 function NumberGroups({ numbers }) {
   const groups = {};
   numbers.forEach(num => { const info = getNumberInfo(num); if (!groups[info.code]) groups[info.code] = { info, nums: [] }; groups[info.code].nums.push(num); });
   return <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{Object.values(groups).map(g => <span key={g.info.code} style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 20, padding: "3px 10px", fontSize: 11, color: "#6b21a8", fontWeight: 600 }}>{g.info.flag} {g.info.name} ({g.nums.length})</span>)}</div>;
 }
 
-// â”€â”€â”€ SITE CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SITE CARD ────────────────────────────────────────────
 function SiteCard({ site, onScript, onEdit, onDelete, onToggle, onPlan, onPayment, onVerify, verifying, isSchema }) {
   return (
     <div className="site-card">
@@ -655,9 +667,9 @@ function SiteCard({ site, onScript, onEdit, onDelete, onToggle, onPlan, onPaymen
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{site.name}</span>
-            {site.verified && <span className="badge-ver">âœ“ Verified</span>}
+            {site.verified && <span className="badge-ver">✓ Verified</span>}
             <span className={site.plan === "advance" ? "badge-pro" : site.plan === "pro" ? "badge-pro" : site.plan === "simple" ? "badge-gray" : "badge-basic"} style={site.plan === "advance" ? {background:"linear-gradient(135deg,#fdf4ff,#ede9fe)",color:"#6d28d9",border:"1px solid #c4b5fd"} : {}}>
-                              {site.plan === "advance" ? "ðŸ’Ž Advance" : site.plan === "pro" ? "ðŸš€ Pro" : site.plan === "simple" ? "ðŸŸ¤ Simple" : "ðŸ”µ Basic"}
+                              {site.plan === "advance" ? "💎 Advance" : site.plan === "pro" ? "🚀 Pro" : site.plan === "simple" ? "🟤 Simple" : "🔵 Basic"}
                             </span>
           </div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{site.url}</div>
@@ -668,12 +680,12 @@ function SiteCard({ site, onScript, onEdit, onDelete, onToggle, onPlan, onPaymen
             <button className={`toggle-btn ${site.enabled ? "on" : "off"}`} onClick={() => onToggle(site)} />
             <span style={{ fontSize: 12, fontWeight: 700, color: site.enabled ? "#16a34a" : "#94a3b8" }}>{site.enabled ? "ON" : "OFF"}</span>
           </div>
-          <span className={`badge ${site.payment === "paid" ? "badge-blue" : "badge-amber"}`}>{site.payment === "paid" ? "ðŸ’° Paid" : "â³ Pending"}</span>
+          <span className={`badge ${site.payment === "paid" ? "badge-blue" : "badge-amber"}`}>{site.payment === "paid" ? "💰 Paid" : "⏳ Pending"}</span>
         </div>
       </div>
       {!isSchema && site.numbers && <NumberGroups numbers={site.numbers} />}
-      {isSchema && <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}><span className="schema-type-badge">Organization</span><span className="schema-type-badge">Article</span><span className="schema-type-badge">BreadcrumbList</span>{site.plan === "pro" && <><span className="schema-type-badge">Product â­</span><span className="schema-type-badge">ItemList â­</span></>}</div>}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{[`ðŸ“… ${fmtDate(site.installedAt || site.createdAt)}`, `ðŸ• ${timeAgo(site.installedAt || site.createdAt)}`].map(c => <span key={c} className="chip">{c}</span>)}</div>
+      {isSchema && <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}><span className="schema-type-badge">Organization</span><span className="schema-type-badge">Article</span><span className="schema-type-badge">BreadcrumbList</span>{site.plan === "pro" && <><span className="schema-type-badge">Product ⭐</span><span className="schema-type-badge">ItemList ⭐</span></>}</div>}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{[`📅 ${fmtDate(site.installedAt || site.createdAt)}`, `🕐 ${timeAgo(site.installedAt || site.createdAt)}`].map(c => <span key={c} className="chip">{c}</span>)}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Plan:</span>
         <button className="plan-btn" style={site.plan==="simple"?{background:"#f1f5f9",color:"#475569",borderColor:"#94a3b8",borderWidth:2}:{}} onClick={() => onPlan(site.id, "simple")}>Simple</button>
@@ -683,21 +695,21 @@ function SiteCard({ site, onScript, onEdit, onDelete, onToggle, onPlan, onPaymen
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Payment:</span>
-        <button className={`btn-pay${site.payment === "paid" ? " paid" : ""}`} onClick={() => onPayment(site.id, "paid")}>âœ… Paid</button>
-        <button className={`btn-pay${site.payment === "pending" ? " pend" : ""}`} onClick={() => onPayment(site.id, "pending")}>â³ Pending</button>
-        {!site.verified && <button className="btn-ver" onClick={() => onVerify(site.id)} disabled={verifying === site.id}>{verifying === site.id ? "â³..." : "ðŸ” Verify"}</button>}
+        <button className={`btn-pay${site.payment === "paid" ? " paid" : ""}`} onClick={() => onPayment(site.id, "paid")}>✅ Paid</button>
+        <button className={`btn-pay${site.payment === "pending" ? " pend" : ""}`} onClick={() => onPayment(site.id, "pending")}>⏳ Pending</button>
+        {!site.verified && <button className="btn-ver" onClick={() => onVerify(site.id)} disabled={verifying === site.id}>{verifying === site.id ? "⏳..." : "🔍 Verify"}</button>}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <button className="btn-a" onClick={() => onScript(site)}>ðŸ“‹ Script</button>
-        <button className="btn-a" onClick={() => onEdit(site)}>âœï¸ Edit</button>
-        <button className="btn-a" style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }} onClick={() => onDelete(site)}>ðŸ—‘ Delete</button>
-        <button className="btn-a" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#86efac" }} onClick={() => window.open(waReminderMsg(site), "_blank")}>ðŸ“¤ WA</button>
+        <button className="btn-a" onClick={() => onScript(site)}>📋 Script</button>
+        <button className="btn-a" onClick={() => onEdit(site)}>✏️ Edit</button>
+        <button className="btn-a" style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }} onClick={() => onDelete(site)}>🗑 Delete</button>
+        <button className="btn-a" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#86efac" }} onClick={() => window.open(waReminderMsg(site), "_blank")}>📤 WA</button>
       </div>
     </div>
   );
 }
 
-// â”€â”€â”€ MAIN APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MAIN APP ─────────────────────────────────────────────
 const EF_CLIENT = { name: "", phone: "", email: "", website: "", plan: "basic", payment_status: "pending", payment_date: "", contract_details: "", invoice_number: "", renewal_date: "", notes: "" };
 const EF_WBM = { name: "", url: "", secretKey: "", numbers: [""], payment: "paid", plan: "simple" };
 const EF_SCHEMA = { name: "", url: "", payment: "paid", plan: "basic", businessName: "", businessType: "Organization", businessDesc: "", businessPhone: "", businessEmail: "", businessAddress: "", businessLogo: "", socialLinks: [] };
@@ -760,7 +772,7 @@ export default function App() {
 
   function toast_(msg, t = "ok") { setToast({ msg, t }); setTimeout(() => setToast(null), 3500); }
 
-  // â”€â”€ CRM Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── CRM Functions ──────────────────────────────────────
   async function saveClient() {
     if (!clientForm.name?.trim()) { toast_("Client naam zaroor bharein!", "err"); return; }
     setSaving(true);
@@ -781,10 +793,10 @@ export default function App() {
       res = await sb.upsertClient(data);
     }
     if (res !== null) {
-      toast_(editingClient ? "Client update ho gaya! âœ…" : "Client add ho gaya! âœ…");
+      toast_(editingClient ? "Client update ho gaya! ✅" : "Client add ho gaya! ✅");
       await loadClients();
       setCrmView("list"); setEditingClient(null); setClientForm(EF_CLIENT);
-    } else toast_("Error â€” dobara try karein!", "err");
+    } else toast_("Error — dobara try karein!", "err");
     setSaving(false);
   }
 
@@ -814,14 +826,14 @@ export default function App() {
     setSaving(true);
     const d = { id: viewWBM === "add" ? genId() : selWBM.id, name: formWBM.name.trim(), url: formWBM.url.trim(), enabled: formWBM.payment === "paid", numbers: nums, secretKey: formWBM.secretKey.trim(), installedAt: viewWBM === "add" ? new Date().toISOString() : selWBM.installedAt, lastActive: new Date().toISOString(), payment: formWBM.payment, plan: formWBM.plan, clicks: viewWBM === "add" ? 0 : selWBM.clicks, impressions: 0, verified: viewWBM === "add" ? false : selWBM.verified };
     const res = await sb.upsertSite(d);
-    if (res !== null) { toast_(viewWBM === "add" ? "Website add! âœ…" : "Update! âœ…"); await loadWBM(); goWBM("dashboard"); } else toast_("Error!", "err");
+    if (res !== null) { toast_(viewWBM === "add" ? "Website add! ✅" : "Update! ✅"); await loadWBM(); goWBM("dashboard"); } else toast_("Error!", "err");
     setSaving(false);
   }
 
-  async function toggleWBM(site) { if (site.payment === "pending") { toast_("Pehle payment karein!", "err"); return; } const ne = !site.enabled; setSites(p => p.map(s => s.id === site.id ? { ...s, enabled: ne } : s)); await sb.updateSite(site.id, { enabled: ne }); toast_(ne ? "âœ… ON!" : "â¸ OFF!"); }
-  async function planWBM(id, plan) { setSites(p => p.map(s => s.id === id ? { ...s, plan } : s)); await sb.updateSite(id, { plan }); toast_(plan === "pro" ? "ðŸš€ Pro!" : "ðŸ”µ Basic!"); }
-  async function paymentWBM(id, val) { const site = sites.find(s => s.id === id); setSites(p => p.map(s => s.id === id ? { ...s, payment: val, enabled: val === "pending" ? false : s.enabled } : s)); if (selWBM?.id === id) setSelWBM(s => ({ ...s, payment: val })); await sb.updateSite(id, { payment: val, enabled: val === "pending" ? false : (site?.enabled ?? true) }); if (val === "pending") { setTimeout(() => window.open(waReminderMsg(site || {}), "_blank"), 400); toast_("WA reminder ðŸ“¤", "warn"); } else toast_("Confirmed! âœ…"); }
-  async function verifyWBM(id) { setVerifyingWBM(id); await sb.updateSite(id, { verified: true }); setSites(p => p.map(s => s.id === id ? { ...s, verified: true } : s)); setVerifyingWBM(null); toast_("Verified! âœ…"); }
+  async function toggleWBM(site) { if (site.payment === "pending") { toast_("Pehle payment karein!", "err"); return; } const ne = !site.enabled; setSites(p => p.map(s => s.id === site.id ? { ...s, enabled: ne } : s)); await sb.updateSite(site.id, { enabled: ne }); toast_(ne ? "✅ ON!" : "⏸ OFF!"); }
+  async function planWBM(id, plan) { setSites(p => p.map(s => s.id === id ? { ...s, plan } : s)); await sb.updateSite(id, { plan }); toast_(plan === "pro" ? "🚀 Pro!" : "🔵 Basic!"); }
+  async function paymentWBM(id, val) { const site = sites.find(s => s.id === id); setSites(p => p.map(s => s.id === id ? { ...s, payment: val, enabled: val === "pending" ? false : s.enabled } : s)); if (selWBM?.id === id) setSelWBM(s => ({ ...s, payment: val })); await sb.updateSite(id, { payment: val, enabled: val === "pending" ? false : (site?.enabled ?? true) }); if (val === "pending") { setTimeout(() => window.open(waReminderMsg(site || {}), "_blank"), 400); toast_("WA reminder 📤", "warn"); } else toast_("Confirmed! ✅"); }
+  async function verifyWBM(id) { setVerifyingWBM(id); await sb.updateSite(id, { verified: true }); setSites(p => p.map(s => s.id === id ? { ...s, verified: true } : s)); setVerifyingWBM(null); toast_("Verified! ✅"); }
   async function deleteWBM(id) { await sb.deleteSite(id); setSites(p => p.filter(s => s.id !== id)); setDelItem(null); toast_("Removed!", "err"); }
 
   // Schema functions
@@ -857,14 +869,14 @@ export default function App() {
     } else {
       res = await sb.upsertSchemaSite(d);
     }
-    if (res !== null) { toast_(viewSchema === "add" ? "Schema site add! âœ…" : "Update ho gaya! âœ…"); await loadSchema(); goSchema("dashboard"); } else toast_("Error â€” dobara try karein!", "err");
+    if (res !== null) { toast_(viewSchema === "add" ? "Schema site add! ✅" : "Update ho gaya! ✅"); await loadSchema(); goSchema("dashboard"); } else toast_("Error — dobara try karein!", "err");
     setSaving(false);
   }
 
-  async function toggleSchema(site) { if (site.payment === "pending") { toast_("Pehle payment karein!", "err"); return; } const ne = !site.enabled; setSchemaSites(p => p.map(s => s.id === site.id ? { ...s, enabled: ne } : s)); await sb.updateSchemaSite(site.id, { enabled: ne }); toast_(ne ? "âœ… ON!" : "â¸ OFF!"); }
-  async function planSchema(id, plan) { setSchemaSites(p => p.map(s => s.id === id ? { ...s, plan } : s)); if (selSchema?.id === id) setSelSchema(s => ({ ...s, plan })); await sb.updateSchemaSite(id, { plan }); toast_(plan === "pro" ? "ðŸš€ Pro!" : "ðŸ”µ Basic!"); }
-  async function paymentSchema(id, val) { const site = schemaSites.find(s => s.id === id); setSchemaSites(p => p.map(s => s.id === id ? { ...s, payment: val, enabled: val === "pending" ? false : s.enabled } : s)); if (selSchema?.id === id) setSelSchema(s => ({ ...s, payment: val })); await sb.updateSchemaSite(id, { payment: val, enabled: val === "pending" ? false : (site?.enabled ?? true) }); if (val === "pending") { setTimeout(() => window.open(waReminderMsg(site || {}), "_blank"), 400); toast_("WA reminder ðŸ“¤", "warn"); } else toast_("Confirmed! âœ…"); }
-  async function verifySchema(id) { setVerifyingSchema(id); await sb.updateSchemaSite(id, { verified: true }); setSchemaSites(p => p.map(s => s.id === id ? { ...s, verified: true } : s)); setVerifyingSchema(null); toast_("Verified! âœ…"); }
+  async function toggleSchema(site) { if (site.payment === "pending") { toast_("Pehle payment karein!", "err"); return; } const ne = !site.enabled; setSchemaSites(p => p.map(s => s.id === site.id ? { ...s, enabled: ne } : s)); await sb.updateSchemaSite(site.id, { enabled: ne }); toast_(ne ? "✅ ON!" : "⏸ OFF!"); }
+  async function planSchema(id, plan) { setSchemaSites(p => p.map(s => s.id === id ? { ...s, plan } : s)); if (selSchema?.id === id) setSelSchema(s => ({ ...s, plan })); await sb.updateSchemaSite(id, { plan }); toast_(plan === "pro" ? "🚀 Pro!" : "🔵 Basic!"); }
+  async function paymentSchema(id, val) { const site = schemaSites.find(s => s.id === id); setSchemaSites(p => p.map(s => s.id === id ? { ...s, payment: val, enabled: val === "pending" ? false : s.enabled } : s)); if (selSchema?.id === id) setSelSchema(s => ({ ...s, payment: val })); await sb.updateSchemaSite(id, { payment: val, enabled: val === "pending" ? false : (site?.enabled ?? true) }); if (val === "pending") { setTimeout(() => window.open(waReminderMsg(site || {}), "_blank"), 400); toast_("WA reminder 📤", "warn"); } else toast_("Confirmed! ✅"); }
+  async function verifySchema(id) { setVerifyingSchema(id); await sb.updateSchemaSite(id, { verified: true }); setSchemaSites(p => p.map(s => s.id === id ? { ...s, verified: true } : s)); setVerifyingSchema(null); toast_("Verified! ✅"); }
   async function deleteSchema(id) { await sb.deleteSchemaSite(id); setSchemaSites(p => p.filter(s => s.id !== id)); setDelItem(null); toast_("Removed!", "err"); }
 
   // Click Logs analytics
@@ -883,20 +895,20 @@ export default function App() {
   const isCrmModule = activeModule === "crm";
 
   const WBM_STATS = [
-    { lb: "Total", val: sites.length, ic: "ðŸŒ", cl: "#2563eb" },
-    { lb: "Active", val: sites.filter(s => s.enabled).length, ic: "âœ…", cl: "#16a34a" },
-    { lb: "Simple", val: sites.filter(s => s.plan === "simple").length, ic: "ðŸŸ¤", cl: "#64748b" },
-    { lb: "Basic", val: sites.filter(s => s.plan === "basic").length, ic: "ðŸ”µ", cl: "#0369a1" },
-    { lb: "Pro", val: sites.filter(s => s.plan === "pro").length, ic: "ðŸš€", cl: "#d97706" },
-    { lb: "Advance", val: sites.filter(s => s.plan === "advance").length, ic: "ðŸ’Ž", cl: "#7c3aed" },
+    { lb: "Total", val: sites.length, ic: "🌐", cl: "#2563eb" },
+    { lb: "Active", val: sites.filter(s => s.enabled).length, ic: "✅", cl: "#16a34a" },
+    { lb: "Simple", val: sites.filter(s => s.plan === "simple").length, ic: "🟤", cl: "#64748b" },
+    { lb: "Basic", val: sites.filter(s => s.plan === "basic").length, ic: "🔵", cl: "#0369a1" },
+    { lb: "Pro", val: sites.filter(s => s.plan === "pro").length, ic: "🚀", cl: "#d97706" },
+    { lb: "Advance", val: sites.filter(s => s.plan === "advance").length, ic: "💎", cl: "#7c3aed" },
   ];
   const SCHEMA_STATS = [
-    { lb: "Total", val: schemaSites.length, ic: "ðŸ”–", cl: "#7c3aed" },
-    { lb: "Active", val: schemaSites.filter(s => s.enabled).length, ic: "âœ…", cl: "#16a34a" },
-    { lb: "Basic", val: schemaSites.filter(s => s.plan === "basic").length, ic: "ðŸ”µ", cl: "#0369a1" },
-    { lb: "Pro", val: schemaSites.filter(s => s.plan === "pro").length, ic: "ðŸš€", cl: "#d97706" },
-    { lb: "Paid", val: schemaSites.filter(s => s.payment === "paid").length, ic: "ðŸ’°", cl: "#7c3aed" },
-    { lb: "Pending", val: schemaSites.filter(s => s.payment === "pending").length, ic: "â³", cl: "#dc2626" },
+    { lb: "Total", val: schemaSites.length, ic: "SC", cl: "#7c3aed" },
+    { lb: "Active", val: schemaSites.filter(s => s.enabled).length, ic: "✅", cl: "#16a34a" },
+    { lb: "Basic", val: schemaSites.filter(s => s.plan === "basic").length, ic: "🔵", cl: "#0369a1" },
+    { lb: "Pro", val: schemaSites.filter(s => s.plan === "pro").length, ic: "🚀", cl: "#d97706" },
+    { lb: "Paid", val: schemaSites.filter(s => s.payment === "paid").length, ic: "💰", cl: "#7c3aed" },
+    { lb: "Pending", val: schemaSites.filter(s => s.payment === "pending").length, ic: "⏳", cl: "#dc2626" },
   ];
 
   const currentView = isSchemaModule ? viewSchema : isLogsModule ? "logs" : viewWBM;
@@ -907,7 +919,7 @@ export default function App() {
       {delItem && (
         <div className="modal-ov">
           <div className="modal">
-            <div style={{ fontSize: 44, marginBottom: 12 }}>ðŸ—‘ï¸</div>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🗑️</div>
             <h3 style={{ color: "#1e293b", marginBottom: 8, fontWeight: 700 }}>Delete karein?</h3>
             <p style={{ color: "#64748b", fontSize: 14, marginBottom: 22 }}><b>{delItem.name}</b> permanently remove hogi.</p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
@@ -923,86 +935,86 @@ export default function App() {
       <aside className={`sidebar${!isWide && !navOpen ? " hidden" : ""}`}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px", borderBottom: "1px solid #e2e8f0" }}>
           <div style={{ display: "flex", gap: 3 }}>
-            <div style={{ width: 28, height: 28, background: "#dcfce7", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>ðŸ’¬</div>
-            <div style={{ width: 28, height: 28, background: "#fdf4ff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>ðŸ”–</div>
-            <div style={{ width: 28, height: 28, background: "#ecfeff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>ðŸ“Š</div>
+            <div style={{ width: 28, height: 28, background: "#dcfce7", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#16a34a", fontFamily: "Arial" }}>WA</div>
+            <div style={{ width: 28, height: 28, background: "#fdf4ff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#7c3aed", fontFamily: "Arial" }}>SC</div>
+            <div style={{ width: 28, height: 28, background: "#ecfeff", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#0891b2", fontFamily: "Arial" }}>AN</div>
           </div>
           <div><div style={{ fontWeight: 800, fontSize: 13, color: "#1e293b" }}>WBManager Suite</div><div style={{ fontSize: 9, color: "#94a3b8" }}>v16.0</div></div>
-          {!isWide && <button onClick={() => setNavOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer" }}>âœ•</button>}
+          {!isWide && <button onClick={() => setNavOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer" }}>✕</button>}
         </div>
 
-        <div className="nav-section">ðŸ’¬ WhatsApp</div>
+        <div className="nav-section">💬 WhatsApp</div>
         <nav style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          <button className={`nav-btn${activeModule === "wbm" && viewWBM === "dashboard" ? " active-wbm" : ""}`} onClick={() => { setActiveModule("wbm"); goWBM("dashboard"); }}><span>âŠž</span> Dashboard</button>
-          <button className={`nav-btn${activeModule === "wbm" && viewWBM === "add" ? " active-wbm" : ""}`} onClick={() => { setActiveModule("wbm"); openAddWBM(); }}><span>ï¼‹</span> Add Website</button>
+          <button className={`nav-btn${activeModule === "wbm" && viewWBM === "dashboard" ? " active-wbm" : ""}`} onClick={() => { setActiveModule("wbm"); goWBM("dashboard"); }}><span>⊞</span> Dashboard</button>
+          <button className={`nav-btn${activeModule === "wbm" && viewWBM === "add" ? " active-wbm" : ""}`} onClick={() => { setActiveModule("wbm"); openAddWBM(); }}><span>＋</span> Add Website</button>
         </nav>
 
         <div className="divider" style={{ margin: "6px 14px" }} />
-        <div className="nav-section">ðŸ”– Schema</div>
+        <div className="nav-section">🔖 Schema</div>
         <nav style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          <button className={`nav-btn${activeModule === "schema" && viewSchema === "dashboard" ? " active-schema" : ""}`} onClick={() => { setActiveModule("schema"); goSchema("dashboard"); }}><span>âŠž</span> Dashboard</button>
-          <button className={`nav-btn${activeModule === "schema" && viewSchema === "add" ? " active-schema" : ""}`} onClick={() => { setActiveModule("schema"); openAddSchema(); }}><span>ï¼‹</span> Add Website</button>
+          <button className={`nav-btn${activeModule === "schema" && viewSchema === "dashboard" ? " active-schema" : ""}`} onClick={() => { setActiveModule("schema"); goSchema("dashboard"); }}><span>⊞</span> Dashboard</button>
+          <button className={`nav-btn${activeModule === "schema" && viewSchema === "add" ? " active-schema" : ""}`} onClick={() => { setActiveModule("schema"); openAddSchema(); }}><span>＋</span> Add Website</button>
         </nav>
 
         <div className="divider" style={{ margin: "6px 14px" }} />
-        <div className="nav-section">ðŸ“Š Analytics</div>
+        <div className="nav-section">📊 Analytics</div>
         <nav style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          <button className={`nav-btn${activeModule === "logs" ? " active-logs" : ""}`} onClick={() => { setActiveModule("logs"); setNavOpen(false); loadLogs(); }}><span>ðŸ“Š</span> Click Logs</button>
+          <button className={`nav-btn${activeModule === "logs" ? " active-logs" : ""}`} onClick={() => { setActiveModule("logs"); setNavOpen(false); loadLogs(); }}><span>📊</span> Click Logs</button>
         </nav>
 
         <div className="divider" style={{ margin: "6px 14px" }} />
-        <div className="nav-section">ðŸ‘¥ CRM</div>
+        <div className="nav-section">👥 CRM</div>
         <nav style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          <button className={`nav-btn${activeModule === "crm" && crmView === "list" ? " active-logs" : ""}`} style={{ "--active-bg": "#fffbeb", "--active-color": "#92400e" }} onClick={() => { setActiveModule("crm"); setCrmView("list"); setNavOpen(false); loadClients(); }}><span>ðŸ‘¥</span> Clients</button>
-          <button className={`nav-btn${activeModule === "crm" && crmView === "add" ? " active-logs" : ""}`} onClick={() => { setActiveModule("crm"); setCrmView("add"); setClientForm(EF_CLIENT); setNavOpen(false); }}><span>ï¼‹</span> Add Client</button>
+          <button className={`nav-btn${activeModule === "crm" && crmView === "list" ? " active-logs" : ""}`} style={{ "--active-bg": "#fffbeb", "--active-color": "#92400e" }} onClick={() => { setActiveModule("crm"); setCrmView("list"); setNavOpen(false); loadClients(); }}><span>👥</span> Clients</button>
+          <button className={`nav-btn${activeModule === "crm" && crmView === "add" ? " active-logs" : ""}`} onClick={() => { setActiveModule("crm"); setCrmView("add"); setClientForm(EF_CLIENT); setNavOpen(false); }}><span>＋</span> Add Client</button>
         </nav>
 
         <div style={{ flex: 1 }} />
         <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0" }}>
-          <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 600, marginBottom: 3 }}>ðŸ’¬ {sites.filter(s => s.enabled).length} active WA sites</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600, marginBottom: 3 }}>ðŸ”– {schemaSites.filter(s => s.enabled).length} active schemas</div>
-          <div style={{ fontSize: 11, color: "#0891b2", fontWeight: 600, marginBottom: 3 }}>ðŸ“Š {logs.length} total clicks</div>
-          <div style={{ fontSize: 11, color: "#d97706", fontWeight: 600, marginBottom: 10 }}>ðŸ‘¥ {clients.length} clients</div>
-          <button onClick={logout} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 9, padding: "8px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>ðŸšª Logout</button>
+          <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 600, marginBottom: 3 }}>💬 {sites.filter(s => s.enabled).length} active WA sites</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600, marginBottom: 3 }}>🔖 {schemaSites.filter(s => s.enabled).length} active schemas</div>
+          <div style={{ fontSize: 11, color: "#0891b2", fontWeight: 600, marginBottom: 3 }}>📊 {logs.length} total clicks</div>
+          <div style={{ fontSize: 11, color: "#d97706", fontWeight: 600, marginBottom: 10 }}>👥 {clients.length} clients</div>
+          <button onClick={logout} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 9, padding: "8px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>🚪 Logout</button>
         </div>
       </aside>
 
       {/* MAIN */}
       <div className={`main-wrap${isWide ? " with-sidebar" : ""}`}>
         <div className="topbar">
-          {!isWide && <button className="menu-btn btn-g" style={{ padding: "8px 12px", fontSize: 18 }} onClick={() => setNavOpen(true)}>â˜°</button>}
+          {!isWide && <button className="menu-btn btn-g" style={{ padding: "8px 12px", fontSize: 18 }} onClick={() => setNavOpen(true)}>☰</button>}
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              {activeModule === "crm" ? "ðŸ‘¥ Client CRM" : isLogsModule ? "ðŸ“Š Click Logs" : isSchemaModule ? "ðŸ”– Schema Manager" : "ðŸ’¬ WhatsApp Manager"}
-              <span className="live-badge">â— LIVE</span>
-              {!isSchemaModule && !isLogsModule && <span className="geo-badge">ðŸŒ GEO</span>}
+              {activeModule === "crm" ? "👥 Client CRM" : isLogsModule ? "📊 Click Logs" : isSchemaModule ? "🔖 Schema Manager" : "💬 WhatsApp Manager"}
+              <span className="live-badge">● LIVE</span>
+              {!isSchemaModule && !isLogsModule && <span className="geo-badge">🌍 GEO</span>}
               {isLogsModule && <span className="logs-badge">REAL-TIME</span>}
             </div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-              {activeModule === "crm" ? `${clients.length} clients Â· ${clients.filter(c => c.payment_status === "paid").length} paid Â· ${clients.filter(c => c.payment_status === "pending").length} pending` : isLogsModule ? `${logs.length} total clicks Â· ${uniqueSites} sites Â· ${todayClicks} today` : isSchemaModule ? (currentView === "dashboard" ? `${schemaSites.filter(s => s.enabled).length} active` : selSchema?.name) : (currentView === "dashboard" ? `${sites.filter(s => s.enabled).length} active Â· Geo ON` : selWBM?.name || "Naya website")}
+              {activeModule === "crm" ? `${clients.length} clients · ${clients.filter(c => c.payment_status === "paid").length} paid · ${clients.filter(c => c.payment_status === "pending").length} pending` : isLogsModule ? `${logs.length} total clicks · ${uniqueSites} sites · ${todayClicks} today` : isSchemaModule ? (currentView === "dashboard" ? `${schemaSites.filter(s => s.enabled).length} active` : selSchema?.name) : (currentView === "dashboard" ? `${sites.filter(s => s.enabled).length} active · Geo ON` : selWBM?.name || "Naya website")}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {(currentView === "dashboard" || isLogsModule) && <button className="btn-g" style={{ fontSize: 12, padding: "8px 12px" }} onClick={isLogsModule ? loadLogs : isSchemaModule ? loadSchema : loadWBM}>ðŸ”„</button>}
-            {!isLogsModule && (currentView === "dashboard" ? <button className={isSchemaModule ? "btn-schema" : "btn-p"} onClick={isSchemaModule ? openAddSchema : openAddWBM}>+ Add</button> : <button className="btn-g" onClick={() => isSchemaModule ? goSchema("dashboard") : goWBM("dashboard")}>â† Back</button>)}
+            {(currentView === "dashboard" || isLogsModule) && <button className="btn-g" style={{ fontSize: 12, padding: "8px 12px" }} onClick={isLogsModule ? loadLogs : isSchemaModule ? loadSchema : loadWBM}>🔄</button>}
+            {!isLogsModule && (currentView === "dashboard" ? <button className={isSchemaModule ? "btn-schema" : "btn-p"} onClick={isSchemaModule ? openAddSchema : openAddWBM}>+ Add</button> : <button className="btn-g" onClick={() => isSchemaModule ? goSchema("dashboard") : goWBM("dashboard")}>← Back</button>)}
           </div>
         </div>
 
         <div className="page">
 
-          {/* â•â• WBM DASHBOARD â•â• */}
+          {/* ══ WBM DASHBOARD ══ */}
           {!isSchemaModule && !isLogsModule && viewWBM === "dashboard" && (<>
             <div className="stats-grid">{WBM_STATS.map(s => <div key={s.lb} className="stat-card"><span style={{ fontSize: 22 }}>{s.ic}</span><span style={{ fontSize: 24, fontWeight: 800, color: s.cl, lineHeight: 1 }}>{s.val}</span><span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.lb}</span></div>)}</div>
-            <div style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#6b21a8" }}>ðŸŒ <b>Geo Routing + Click Logs Active</b> â€” Har click Supabase mein automatically save hoga!</div>
+            <div style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#6b21a8" }}>🌍 <b>Geo Routing + Click Logs Active</b> — Har click Supabase mein automatically save hoga!</div>
             {loadingWBM ? <div className="loading"><div className="spinner" /></div> : (
               <div className="card">
-                <div className="card-title">ðŸ’¬ WhatsApp Sites ({sites.length})</div>
-                {sites.length === 0 ? <div style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 48, marginBottom: 14 }}>ðŸŒ</div><p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi website nahi!</p><button className="btn-p" onClick={openAddWBM}>+ Add</button></div> : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{sites.map(site => <SiteCard key={site.id} site={site} onScript={openScriptWBM} onEdit={openEditWBM} onDelete={s => setDelItem(s)} onToggle={toggleWBM} onPlan={planWBM} onPayment={paymentWBM} onVerify={verifyWBM} verifying={verifyingWBM} isSchema={false} />)}</div>}
+                <div className="card-title">💬 WhatsApp Sites ({sites.length})</div>
+                {sites.length === 0 ? <div style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 48, marginBottom: 14 }}>🌐</div><p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi website nahi!</p><button className="btn-p" onClick={openAddWBM}>+ Add</button></div> : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{sites.map(site => <SiteCard key={site.id} site={site} onScript={openScriptWBM} onEdit={openEditWBM} onDelete={s => setDelItem(s)} onToggle={toggleWBM} onPlan={planWBM} onPayment={paymentWBM} onVerify={verifyWBM} verifying={verifyingWBM} isSchema={false} />)}</div>}
               </div>
             )}
           </>)}
 
-          {/* â•â• WBM ADD/EDIT â•â• */}
+          {/* ══ WBM ADD/EDIT ══ */}
           {!isSchemaModule && !isLogsModule && (viewWBM === "add" || viewWBM === "edit") && (
             <div className="card">
               <div className="form-grid" style={{ marginBottom: 4 }}>
@@ -1011,9 +1023,9 @@ export default function App() {
                 <div className="fg" style={{ gridColumn: "1/-1" }}><label className="lbl">Secret ID</label><input className="inp" placeholder="e.g. SDP001" value={formWBM.secretKey} onChange={e => setFormWBM(f => ({ ...f, secretKey: e.target.value }))} /></div>
               </div>
               <div className="fg">
-                <label className="lbl">WhatsApp Numbers * <span style={{ color: "#7c3aed", fontSize: 11 }}>ðŸŒ Geo auto</span></label>
+                <label className="lbl">WhatsApp Numbers * <span style={{ color: "#7c3aed", fontSize: 11 }}>🌍 Geo auto</span></label>
                 <div style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#6b21a8", marginBottom: 8 }}>+92 PK | +971 UAE | +966 SA | +965 KW | +1 US | +44 UK</div>
-                {formWBM.numbers.map((n, i) => { const info = n.trim() ? getNumberInfo(n) : null; return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}><span style={{ fontSize: 18 }}>{info ? info.flag : "ðŸ“±"}</span><input className="inp" style={{ flex: 1 }} placeholder="+92 300 1234567" value={n} onChange={e => { const a = [...formWBM.numbers]; a[i] = e.target.value; setFormWBM(f => ({ ...f, numbers: a })); }} />{info && <span style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600, whiteSpace: "nowrap" }}>{info.name}</span>}{formWBM.numbers.length > 1 && <button onClick={() => setFormWBM(f => ({ ...f, numbers: f.numbers.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "8px 11px", cursor: "pointer", fontWeight: 700 }}>âœ•</button>}</div>; })}
+                {formWBM.numbers.map((n, i) => { const info = n.trim() ? getNumberInfo(n) : null; return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}><span style={{ fontSize: 18 }}>{info ? info.flag : "📱"}</span><input className="inp" style={{ flex: 1 }} placeholder="+92 300 1234567" value={n} onChange={e => { const a = [...formWBM.numbers]; a[i] = e.target.value; setFormWBM(f => ({ ...f, numbers: a })); }} />{info && <span style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600, whiteSpace: "nowrap" }}>{info.name}</span>}{formWBM.numbers.length > 1 && <button onClick={() => setFormWBM(f => ({ ...f, numbers: f.numbers.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "8px 11px", cursor: "pointer", fontWeight: 700 }}>✕</button>}</div>; })}
                 <button onClick={() => setFormWBM(f => ({ ...f, numbers: [...f.numbers, ""] }))} style={{ background: "transparent", border: "2px dashed #e2e8f0", color: "#94a3b8", borderRadius: 9, padding: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, width: "100%" }}>+ Add Number</button>
               </div>
               <div className="fg">
@@ -1021,7 +1033,7 @@ export default function App() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                   {/* Simple Plan */}
                   <div className={`plan-card basic${formWBM.plan === "simple" ? " selected" : ""}`} onClick={() => setFormWBM(f => ({ ...f, plan: "simple" }))} style={{ background: "#f8fafc", borderColor: formWBM.plan === "simple" ? "#64748b" : "#e2e8f0" }}>
-                    <div className="plan-card-title" style={{ color: "#475569" }}>ðŸŸ¤ Simple</div>
+                    <div className="plan-card-title" style={{ color: "#475569" }}>🟤 Simple</div>
                     <div className="plan-price" style={{ color: "#475569" }}>PKR 299<span style={{ fontSize: 12 }}>/mo</span></div>
                     <div className="plan-feature">WhatsApp button</div>
                     <div className="plan-feature">Empty message</div>
@@ -1031,17 +1043,17 @@ export default function App() {
                   </div>
                   {/* Basic Plan */}
                   <div className={`plan-card basic${formWBM.plan === "basic" ? " selected" : ""}`} onClick={() => setFormWBM(f => ({ ...f, plan: "basic" }))}>
-                    <div className="plan-card-title">ðŸ”µ Basic</div>
+                    <div className="plan-card-title">🔵 Basic</div>
                     <div className="plan-price">PKR 499<span style={{ fontSize: 12 }}>/mo</span></div>
                     <div className="plan-feature">Simple sab kuch +</div>
                     <div className="plan-feature">Inquiry message</div>
                     <div className="plan-feature">1 number</div>
-                    <div className="plan-feature">ðŸ“Š Click Logs</div>
+                    <div className="plan-feature">📊 Click Logs</div>
                     <div className="plan-feature no">Product details nahi</div>
                   </div>
                   {/* Pro Plan */}
                   <div className={`plan-card pro${formWBM.plan === "pro" ? " selected" : ""}`} onClick={() => setFormWBM(f => ({ ...f, plan: "pro" }))}>
-                    <div className="plan-card-title">ðŸš€ Pro</div>
+                    <div className="plan-card-title">🚀 Pro</div>
                     <div className="plan-price">PKR 999<span style={{ fontSize: 12 }}>/mo</span></div>
                     <div className="plan-feature">Basic sab kuch +</div>
                     <div className="plan-feature">Product + Price auto</div>
@@ -1050,62 +1062,62 @@ export default function App() {
                   </div>
                   {/* Advance Plan */}
                   <div className={`plan-card pro${formWBM.plan === "advance" ? " selected" : ""}`} onClick={() => setFormWBM(f => ({ ...f, plan: "advance" }))} style={{ background: formWBM.plan === "advance" ? "linear-gradient(135deg,#fdf4ff,#ede9fe)" : "linear-gradient(135deg,#fdf4ff,#ede9fe)", borderColor: formWBM.plan === "advance" ? "#7c3aed" : "#c4b5fd" }}>
-                    <div className="plan-card-title" style={{ color: "#6d28d9" }}>ðŸ’Ž Advance</div>
+                    <div className="plan-card-title" style={{ color: "#6d28d9" }}>💎 Advance</div>
                     <div className="plan-price" style={{ color: "#6d28d9" }}>PKR 1499<span style={{ fontSize: 12 }}>/mo</span></div>
                     <div className="plan-feature">Pro sab kuch +</div>
                     <div className="plan-feature">Unlimited numbers</div>
-                    <div className="plan-feature">ðŸŒ Geo Routing</div>
+                    <div className="plan-feature">🌍 Geo Routing</div>
                     <div className="plan-feature">Multi-country routing</div>
                   </div>
                 </div>
               </div>
-              <div className="card" style={{ background: "#f8fafc", boxShadow: "none" }}><div className="card-title">ðŸ’° Payment</div><div style={{ display: "flex", gap: 10 }}><button className={`btn-pay${formWBM.payment === "paid" ? " paid" : ""}`} onClick={() => setFormWBM(f => ({ ...f, payment: "paid" }))}>âœ… Paid</button><button className={`btn-pay${formWBM.payment === "pending" ? " pend" : ""}`} onClick={() => setFormWBM(f => ({ ...f, payment: "pending" }))}>â³ Pending</button></div></div>
+              <div className="card" style={{ background: "#f8fafc", boxShadow: "none" }}><div className="card-title">💰 Payment</div><div style={{ display: "flex", gap: 10 }}><button className={`btn-pay${formWBM.payment === "paid" ? " paid" : ""}`} onClick={() => setFormWBM(f => ({ ...f, payment: "paid" }))}>✅ Paid</button><button className={`btn-pay${formWBM.payment === "pending" ? " pend" : ""}`} onClick={() => setFormWBM(f => ({ ...f, payment: "pending" }))}>⏳ Pending</button></div></div>
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}><button className="btn-g" onClick={() => goWBM("dashboard")}>Cancel</button><button className="btn-p" onClick={saveWBM} disabled={saving}>{saving ? "Saving..." : viewWBM === "add" ? "Add Website" : "Save"}</button></div>
             </div>
           )}
 
-          {/* â•â• WBM SCRIPT â•â• */}
+          {/* ══ WBM SCRIPT ══ */}
           {!isSchemaModule && !isLogsModule && viewWBM === "script" && selWBM && (
             <div className="card">
               <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 12, flexWrap: "wrap" }}>
-                {["script", "messages"].map(t => <button key={t} className={`tab-btn${tabWBM === t ? " active" : ""}`} onClick={() => setTabWBM(t)}>{t === "script" ? "ðŸ“‹ Script" : "ðŸ’¬ Messages"}</button>)}
+                {["script", "messages"].map(t => <button key={t} className={`tab-btn${tabWBM === t ? " active" : ""}`} onClick={() => setTabWBM(t)}>{t === "script" ? "📋 Script" : "💬 Messages"}</button>)}
               </div>
               {tabWBM === "script" && (<>
-                {selWBM.payment === "pending" && <div className="alert-w">âš ï¸ Payment pending â€” script inactive.</div>}
-                <div className="success-box">âš¡ Real-time + ðŸŒ Geo + ðŸ“Š Click Logs â€” Har click automatically Supabase mein save hoga!</div>
+                {selWBM.payment === "pending" && <div className="alert-w">⚠️ Payment pending — script inactive.</div>}
+                <div className="success-box">⚡ Real-time + 🌍 Geo + 📊 Click Logs — Har click automatically Supabase mein save hoga!</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-                  <div><div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{selWBM.enabled && selWBM.payment === "paid" ? "âœ… Active" : "â›” Inactive"} â€” {selWBM.plan === "pro" ? "ðŸš€ Pro" : "ðŸ”µ Basic"}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Paste before &lt;/body&gt; â€” sirf ek baar!</div></div>
-                  <button className="btn-p" style={copiedWBM ? { background: "#16a34a" } : {}} onClick={() => { navigator.clipboard.writeText(genWBMScript(selWBM)); setCopiedWBM(true); toast_("Copied! âœ…"); setTimeout(() => setCopiedWBM(false), 2500); }}>{copiedWBM ? "âœ“ Copied!" : "ðŸ“‹ Copy"}</button>
+                  <div><div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{selWBM.enabled && selWBM.payment === "paid" ? "✅ Active" : "⛔ Inactive"} — {selWBM.plan === "pro" ? "🚀 Pro" : "🔵 Basic"}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Paste before &lt;/body&gt; — sirf ek baar!</div></div>
+                  <button className="btn-p" style={copiedWBM ? { background: "#16a34a" } : {}} onClick={() => { navigator.clipboard.writeText(genWBMScript(selWBM)); setCopiedWBM(true); toast_("Copied! ✅"); setTimeout(() => setCopiedWBM(false), 2500); }}>{copiedWBM ? "✓ Copied!" : "📋 Copy"}</button>
                 </div>
                 <pre className="script-box">{genWBMScript(selWBM)}</pre>
               </>)}
               {tabWBM === "messages" && (
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>ðŸ”µ Basic:</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>🔵 Basic:</div>
                   <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: 14, fontSize: 12, color: "#0369a1", fontFamily: "monospace", marginBottom: 16 }}>Assalam-o-Alaikum!{"\n\n"}I am interested in your products.{"\n\n"}Store: {selWBM.url}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8 }}>ðŸš€ Pro â€” Product page:</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#d97706", marginBottom: 8 }}>🚀 Pro — Product page:</div>
                   <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: 14, fontSize: 12, color: "#166534", fontFamily: "monospace" }}>Assalam-o-Alaikum, I want to order:{"\n\n"}*Product:* Name (auto){"\n"}*Price:* PKR 2000 (auto){"\n"}{selWBM.secretKey ? `*Secret ID:* ${selWBM.secretKey}\n` : ""}*Link:* {selWBM.url}/product</div>
                 </div>
               )}
             </div>
           )}
 
-          {/* â•â• SCHEMA DASHBOARD â•â• */}
+          {/* ══ SCHEMA DASHBOARD ══ */}
           {isSchemaModule && viewSchema === "dashboard" && (<>
             <div className="stats-grid">{SCHEMA_STATS.map(s => <div key={s.lb} className="stat-card"><span style={{ fontSize: 22 }}>{s.ic}</span><span style={{ fontSize: 24, fontWeight: 800, color: s.cl, lineHeight: 1 }}>{s.val}</span><span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.lb}</span></div>)}</div>
-            <div className="schema-info">ðŸ”– <b>Schema Markup Manager</b> â€” Ek baar script paste â†’ har page pe auto Schema apply!</div>
+            <div className="schema-info">🔖 <b>Schema Markup Manager</b> — Ek baar script paste → har page pe auto Schema apply!</div>
             {loadingSchema ? <div className="loading"><div className="spinner" style={{ borderTopColor: "#7c3aed" }} /></div> : (
               <div className="card">
-                <div className="card-title">ðŸ”– Schema Sites ({schemaSites.length})</div>
-                {schemaSites.length === 0 ? <div style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 48, marginBottom: 14 }}>ðŸ”–</div><p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi schema site nahi!</p><button className="btn-schema" onClick={openAddSchema}>+ Add</button></div> : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{schemaSites.map(site => <SiteCard key={site.id} site={{ ...site, installedAt: site.createdAt }} onScript={openScriptSchema} onEdit={openEditSchema} onDelete={s => setDelItem({ ...s, _type: "schema" })} onToggle={toggleSchema} onPlan={planSchema} onPayment={paymentSchema} onVerify={verifySchema} verifying={verifyingSchema} isSchema={true} />)}</div>}
+                <div className="card-title">🔖 Schema Sites ({schemaSites.length})</div>
+                {schemaSites.length === 0 ? <div style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 48, marginBottom: 14 }}>🔖</div><p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi schema site nahi!</p><button className="btn-schema" onClick={openAddSchema}>+ Add</button></div> : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{schemaSites.map(site => <SiteCard key={site.id} site={{ ...site, installedAt: site.createdAt }} onScript={openScriptSchema} onEdit={openEditSchema} onDelete={s => setDelItem({ ...s, _type: "schema" })} onToggle={toggleSchema} onPlan={planSchema} onPayment={paymentSchema} onVerify={verifySchema} verifying={verifyingSchema} isSchema={true} />)}</div>}
               </div>
             )}
           </>)}
 
-          {/* â•â• SCHEMA ADD/EDIT â•â• */}
+          {/* ══ SCHEMA ADD/EDIT ══ */}
           {isSchemaModule && (viewSchema === "add" || viewSchema === "edit") && (
             <div className="card">
-              <div className="schema-info">ðŸ”– Business info ek baar add karo â€” Google rich results ke liye!</div>
+              <div className="schema-info">🔖 Business info ek baar add karo — Google rich results ke liye!</div>
               <div className="form-grid" style={{ marginBottom: 4 }}>
                 <div className="fg"><label className="lbl">Client Name *</label><input className="inp" placeholder="My Store" value={formSchema.name} onChange={e => setFormSchema(f => ({ ...f, name: e.target.value }))} /></div>
                 <div className="fg"><label className="lbl">Website URL *</label><input className="inp" placeholder="https://yoursite.com" value={formSchema.url} onChange={e => setFormSchema(f => ({ ...f, url: e.target.value }))} /></div>
@@ -1119,46 +1131,46 @@ export default function App() {
               </div>
               <div className="fg">
                 <label className="lbl">Social Links</label>
-                {formSchema.socialLinks.map((link, i) => <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}><input className="inp" style={{ flex: 1 }} value={link} onChange={e => { const a = [...formSchema.socialLinks]; a[i] = e.target.value; setFormSchema(f => ({ ...f, socialLinks: a })); }} /><button onClick={() => setFormSchema(f => ({ ...f, socialLinks: f.socialLinks.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "8px 11px", cursor: "pointer", fontWeight: 700 }}>âœ•</button></div>)}
+                {formSchema.socialLinks.map((link, i) => <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}><input className="inp" style={{ flex: 1 }} value={link} onChange={e => { const a = [...formSchema.socialLinks]; a[i] = e.target.value; setFormSchema(f => ({ ...f, socialLinks: a })); }} /><button onClick={() => setFormSchema(f => ({ ...f, socialLinks: f.socialLinks.filter((_, j) => j !== i) }))} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "8px 11px", cursor: "pointer", fontWeight: 700 }}>✕</button></div>)}
                 <div style={{ display: "flex", gap: 8 }}><input className="inp" style={{ flex: 1 }} placeholder="https://facebook.com/page" value={socialInput} onChange={e => setSocialInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && socialInput.trim()) { setFormSchema(f => ({ ...f, socialLinks: [...f.socialLinks, socialInput.trim()] })); setSocialInput(""); } }} /><button onClick={() => { if (socialInput.trim()) { setFormSchema(f => ({ ...f, socialLinks: [...f.socialLinks, socialInput.trim()] })); setSocialInput(""); } }} style={{ background: "#fdf4ff", border: "1px solid #e9d5ff", color: "#7c3aed", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>+ Add</button></div>
               </div>
               <div className="fg"><label className="lbl">SELECT PLAN *</label>
                 <div className="plan-compare">
-                  <div className={`plan-card basic${formSchema.plan === "basic" ? " selected" : ""}`} onClick={() => setFormSchema(f => ({ ...f, plan: "basic" }))}><div className="plan-card-title">ðŸ”µ Basic</div><div className="plan-price">PKR 499<span style={{ fontSize: 12 }}>/mo</span></div><div className="plan-feature">Organization Schema</div><div className="plan-feature">Article Schema</div><div className="plan-feature">BreadcrumbList</div><div className="plan-feature no">Product Schema nahi</div></div>
-                  <div className={`plan-card pro${formSchema.plan === "pro" ? " selected" : ""}`} onClick={() => setFormSchema(f => ({ ...f, plan: "pro" }))}><div className="plan-card-title">ðŸš€ Pro</div><div className="plan-price">PKR 999<span style={{ fontSize: 12 }}>/mo</span></div><div className="plan-feature">Sab Basic schemas</div><div className="plan-feature">Product Schema</div><div className="plan-feature">ItemList Schema</div><div className="plan-feature">Rich Google results</div></div>
+                  <div className={`plan-card basic${formSchema.plan === "basic" ? " selected" : ""}`} onClick={() => setFormSchema(f => ({ ...f, plan: "basic" }))}><div className="plan-card-title">🔵 Basic</div><div className="plan-price">PKR 499<span style={{ fontSize: 12 }}>/mo</span></div><div className="plan-feature">Organization Schema</div><div className="plan-feature">Article Schema</div><div className="plan-feature">BreadcrumbList</div><div className="plan-feature no">Product Schema nahi</div></div>
+                  <div className={`plan-card pro${formSchema.plan === "pro" ? " selected" : ""}`} onClick={() => setFormSchema(f => ({ ...f, plan: "pro" }))}><div className="plan-card-title">🚀 Pro</div><div className="plan-price">PKR 999<span style={{ fontSize: 12 }}>/mo</span></div><div className="plan-feature">Sab Basic schemas</div><div className="plan-feature">Product Schema</div><div className="plan-feature">ItemList Schema</div><div className="plan-feature">Rich Google results</div></div>
                 </div>
               </div>
-              <div className="card" style={{ background: "#f8fafc", boxShadow: "none" }}><div className="card-title">ðŸ’° Payment</div><div style={{ display: "flex", gap: 10 }}><button className={`btn-pay${formSchema.payment === "paid" ? " paid" : ""}`} onClick={() => setFormSchema(f => ({ ...f, payment: "paid" }))}>âœ… Paid</button><button className={`btn-pay${formSchema.payment === "pending" ? " pend" : ""}`} onClick={() => setFormSchema(f => ({ ...f, payment: "pending" }))}>â³ Pending</button></div></div>
+              <div className="card" style={{ background: "#f8fafc", boxShadow: "none" }}><div className="card-title">💰 Payment</div><div style={{ display: "flex", gap: 10 }}><button className={`btn-pay${formSchema.payment === "paid" ? " paid" : ""}`} onClick={() => setFormSchema(f => ({ ...f, payment: "paid" }))}>✅ Paid</button><button className={`btn-pay${formSchema.payment === "pending" ? " pend" : ""}`} onClick={() => setFormSchema(f => ({ ...f, payment: "pending" }))}>⏳ Pending</button></div></div>
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}><button className="btn-g" onClick={() => goSchema("dashboard")}>Cancel</button><button className="btn-schema" onClick={saveSchema} disabled={saving}>{saving ? "Saving..." : viewSchema === "add" ? "Add Website" : "Save"}</button></div>
             </div>
           )}
 
-          {/* â•â• SCHEMA SCRIPT â•â• */}
+          {/* ══ SCHEMA SCRIPT ══ */}
           {isSchemaModule && viewSchema === "script" && selSchema && (
             <div className="card">
-              {selSchema.payment === "pending" && <div className="alert-w">âš ï¸ Payment pending â€” script inactive.</div>}
-              <div className="schema-info">ðŸ”– Schema Types: <span className="schema-type-badge">Organization</span><span className="schema-type-badge">WebSite</span><span className="schema-type-badge">Article</span><span className="schema-type-badge">BreadcrumbList</span>{selSchema.plan === "pro" && <><span className="schema-type-badge">Product â­</span><span className="schema-type-badge">ItemList â­</span></>}</div>
-              <div className="success-box">âœ… One-time paste â†’ Har page auto! Naye posts bhi! Real-time control!</div>
+              {selSchema.payment === "pending" && <div className="alert-w">⚠️ Payment pending — script inactive.</div>}
+              <div className="schema-info">🔖 Schema Types: <span className="schema-type-badge">Organization</span><span className="schema-type-badge">WebSite</span><span className="schema-type-badge">Article</span><span className="schema-type-badge">BreadcrumbList</span>{selSchema.plan === "pro" && <><span className="schema-type-badge">Product ⭐</span><span className="schema-type-badge">ItemList ⭐</span></>}</div>
+              <div className="success-box">✅ One-time paste → Har page auto! Naye posts bhi! Real-time control!</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-                <div><div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{selSchema.enabled && selSchema.payment === "paid" ? "âœ… Active" : "â›” Inactive"} â€” {selSchema.plan === "pro" ? "ðŸš€ Pro" : "ðŸ”µ Basic"}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Paste before &lt;/body&gt;</div></div>
-                <button className="btn-schema" style={copiedSchema ? { background: "#6d28d9" } : {}} onClick={() => { navigator.clipboard.writeText(genSchemaScript(selSchema)); setCopiedSchema(true); toast_("Copied! âœ…"); setTimeout(() => setCopiedSchema(false), 2500); }}>{copiedSchema ? "âœ“ Copied!" : "ðŸ“‹ Copy"}</button>
+                <div><div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>{selSchema.enabled && selSchema.payment === "paid" ? "✅ Active" : "⛔ Inactive"} — {selSchema.plan === "pro" ? "🚀 Pro" : "🔵 Basic"}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Paste before &lt;/body&gt;</div></div>
+                <button className="btn-schema" style={copiedSchema ? { background: "#6d28d9" } : {}} onClick={() => { navigator.clipboard.writeText(genSchemaScript(selSchema)); setCopiedSchema(true); toast_("Copied! ✅"); setTimeout(() => setCopiedSchema(false), 2500); }}>{copiedSchema ? "✓ Copied!" : "📋 Copy"}</button>
               </div>
               <pre className="script-box" style={{ color: "#c4b5fd" }}>{genSchemaScript(selSchema)}</pre>
               <div style={{ marginTop: 14, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b", marginBottom: 8 }}>âš™ï¸ Quick Controls</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b", marginBottom: 8 }}>⚙️ Quick Controls</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button className={`toggle-btn ${selSchema.enabled ? "on" : "off"}`} onClick={() => { toggleSchema(selSchema); setSelSchema(s => ({ ...s, enabled: !s.enabled })); }} />
-                  <span style={{ fontWeight: 700, color: selSchema.enabled ? "#16a34a" : "#94a3b8", fontSize: 13 }}>{selSchema.enabled ? "âœ… ON" : "â¸ OFF"}</span>
-                  <button className={`plan-btn${selSchema.plan === "basic" ? " basic-active" : ""}`} onClick={() => planSchema(selSchema.id, "basic")}>ðŸ”µ Basic</button>
-                  <button className={`plan-btn${selSchema.plan === "pro" ? " pro-active" : ""}`} onClick={() => planSchema(selSchema.id, "pro")}>ðŸš€ Pro</button>
-                  <button className={`btn-pay${selSchema.payment === "paid" ? " paid" : ""}`} onClick={() => paymentSchema(selSchema.id, "paid")}>âœ… Paid</button>
-                  <button className={`btn-pay${selSchema.payment === "pending" ? " pend" : ""}`} onClick={() => paymentSchema(selSchema.id, "pending")}>â³ Pending</button>
+                  <span style={{ fontWeight: 700, color: selSchema.enabled ? "#16a34a" : "#94a3b8", fontSize: 13 }}>{selSchema.enabled ? "✅ ON" : "⏸ OFF"}</span>
+                  <button className={`plan-btn${selSchema.plan === "basic" ? " basic-active" : ""}`} onClick={() => planSchema(selSchema.id, "basic")}>🔵 Basic</button>
+                  <button className={`plan-btn${selSchema.plan === "pro" ? " pro-active" : ""}`} onClick={() => planSchema(selSchema.id, "pro")}>🚀 Pro</button>
+                  <button className={`btn-pay${selSchema.payment === "paid" ? " paid" : ""}`} onClick={() => paymentSchema(selSchema.id, "paid")}>✅ Paid</button>
+                  <button className={`btn-pay${selSchema.payment === "pending" ? " pend" : ""}`} onClick={() => paymentSchema(selSchema.id, "pending")}>⏳ Pending</button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* â•â• CLICK LOGS â•â• */}
+          {/* ══ CLICK LOGS ══ */}
           {isLogsModule && (
             <>
               {/* Mini Stats */}
@@ -1172,7 +1184,7 @@ export default function App() {
               {/* Country Chart */}
               {topCountries.length > 0 && (
                 <div className="card">
-                  <div className="card-title">ðŸŒ Top Countries</div>
+                  <div className="card-title">🌍 Top Countries</div>
                   {topCountries.map(([country, count]) => (
                     <div key={country} className="country-bar">
                       <div className="country-bar-label">{country}</div>
@@ -1185,214 +1197,19 @@ export default function App() {
 
               {/* Filter by Site */}
               <div className="card">
-                <div className="card-title">ðŸ“Š Click Logs</div>
+                <div className="card-title">📊 Click Logs</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
                   <button className={`plan-btn${logFilter === "all" ? " basic-active" : ""}`} onClick={() => setLogFilter("all")}>All Sites</button>
                   {sites.map(s => <button key={s.id} className={`plan-btn${logFilter === s.id ? " basic-active" : ""}`} onClick={() => setLogFilter(s.id)}>{s.name}</button>)}
                 </div>
                 {loadingLogs ? <div className="loading"><div className="spinner" style={{ borderTopColor: "#0891b2" }} /></div> : filteredLogs.length === 0 ? (
                   <div style={{ textAlign: "center", padding: 40 }}>
-                    <div style={{ fontSize: 48, marginBottom: 14 }}>ðŸ“Š</div>
-                    <p style={{ color: "#94a3b8" }}>Abhi tak koi click nahi â€” Script client ki site pe paste karo!</p>
+                    <div style={{ fontSize: 48, marginBottom: 14 }}>📊</div>
+                    <p style={{ color: "#94a3b8" }}>Abhi tak koi click nahi — Script client ki site pe paste karo!</p>
                   </div>
                 ) : (
                   <div style={{ overflowX: "auto" }}>
                     <table className="logs-table">
                       <thead>
                         <tr>
-                          <th>Time</th>
-                          <th>Site</th>
-                          <th>Country</th>
-                          <th>Product</th>
-                          <th>Plan</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredLogs.map((log, i) => (
-                          <tr key={i}>
-                            <td style={{ whiteSpace: "nowrap", fontSize: 11 }}>{fmtDateTime(log.clicked_at)}</td>
-                            <td><span className="log-site">{log.site_name || "â€”"}</span></td>
-                            <td><span className="log-country">{log.country_name || "Unknown"}</span></td>
-                            <td><div className="log-title" title={log.product_title}>{log.product_title || "â€”"}</div></td>
-                            <td><span className={log.plan === "pro" ? "log-plan-pro" : "log-plan-basic"}>{log.plan === "pro" ? "ðŸš€ Pro" : "ðŸ”µ Basic"}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* â•â• CRM MODULE â•â• */}
-          {isCrmModule && crmView === "list" && (
-            <>
-              {/* Stats */}
-              <div className="stats-grid">
-                {[
-                  { lb: "Total Clients", val: clients.length, ic: "ðŸ‘¥", cl: "#d97706" },
-                  { lb: "Paid", val: clients.filter(c => c.payment_status === "paid").length, ic: "âœ…", cl: "#16a34a" },
-                  { lb: "Pending", val: clients.filter(c => c.payment_status === "pending").length, ic: "â³", cl: "#ca8a04" },
-                  { lb: "Overdue", val: clients.filter(c => c.payment_status === "overdue").length, ic: "âš ï¸", cl: "#dc2626" },
-                  { lb: "Basic Plan", val: clients.filter(c => c.plan === "basic").length, ic: "ðŸ”µ", cl: "#0369a1" },
-                  { lb: "Pro Plan", val: clients.filter(c => c.plan === "pro").length, ic: "ðŸš€", cl: "#7c3aed" },
-                ].map(s => (
-                  <div key={s.lb} className="stat-card">
-                    <span style={{ fontSize: 22 }}>{s.ic}</span>
-                    <span style={{ fontSize: 24, fontWeight: 800, color: s.cl, lineHeight: 1 }}>{s.val}</span>
-                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.lb}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-                  <div className="card-title" style={{ margin: 0 }}>ðŸ‘¥ CLIENTS ({clients.length})</div>
-                  <button className="btn-crm" onClick={() => { setCrmView("add"); setClientForm(EF_CLIENT); setEditingClient(null); }}>+ Add Client</button>
-                </div>
-                {loadingClients ? (
-                  <div className="loading"><div className="spinner" style={{ borderTopColor: "#d97706" }} /></div>
-                ) : clients.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: 40 }}>
-                    <div style={{ fontSize: 48, marginBottom: 14 }}>ðŸ‘¥</div>
-                    <p style={{ color: "#94a3b8", marginBottom: 18 }}>Koi client nahi!</p>
-                    <button className="btn-crm" onClick={() => { setCrmView("add"); setClientForm(EF_CLIENT); setEditingClient(null); }}>+ Add Client</button>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {clients.map(client => (
-                      <div key={client.id} className="client-row">
-                        {/* Header */}
-                        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <span style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{client.name}</span>
-                              <span className={client.payment_status === "paid" ? "status-paid" : client.payment_status === "overdue" ? "status-overdue" : "status-pending"}>
-                                {client.payment_status === "paid" ? "âœ… Paid" : client.payment_status === "overdue" ? "âš ï¸ Overdue" : "â³ Pending"}
-                              </span>
-                              <span className={client.plan === "pro" ? "badge-pro" : "badge-basic"}>{client.plan === "pro" ? "ðŸš€ Pro" : "ðŸ”µ Basic"}</span>
-                            </div>
-                            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{client.phone} {client.email ? `Â· ${client.email}` : ""}</div>
-                          </div>
-                        </div>
-
-                        {/* Details */}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {client.website && <span className="chip">ðŸŒ {client.website}</span>}
-                          {client.invoice_number && <span className="chip">ðŸ§¾ Invoice: {client.invoice_number}</span>}
-                          {client.payment_date && <span className="chip">ðŸ’° Paid: {client.payment_date}</span>}
-                          {client.renewal_date && <span className="chip">ðŸ”„ Renewal: {client.renewal_date}</span>}
-                        </div>
-
-                        {/* Contract */}
-                        {client.contract_details && (
-                          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#475569" }}>
-                            ðŸ“‹ {client.contract_details}
-                          </div>
-                        )}
-
-                        {/* Notes */}
-                        {client.notes && (
-                          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#92400e" }}>
-                            ðŸ“ {client.notes}
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          <button className="btn-a" onClick={() => openEditClient(client)}>âœï¸ Edit</button>
-                          <button className="btn-a" style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }} onClick={() => deleteClient(client.id)}>ðŸ—‘ Delete</button>
-                          {client.phone && <button className="btn-a" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#86efac" }} onClick={() => { const msg = `Assalam o Alaikum ${client.name}!\n\nAapki WBManager service ki payment pending hai.\n\nKripya jald payment karein.\n\nShukriya!`; window.open(`https://wa.me/${client.phone.replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`, "_blank"); }}>ðŸ“¤ WA Reminder</button>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* â•â• CRM ADD/EDIT â•â• */}
-          {isCrmModule && crmView === "add" && (
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b", marginBottom: 20 }}>
-                {editingClient ? "âœï¸ Client Edit karein" : "âž• Naya Client Add karein"}
-              </div>
-
-              <div className="form-grid">
-                <div className="fg">
-                  <label className="lbl">Client Name *</label>
-                  <input className="inp" placeholder="Ahmed Ali" value={clientForm.name || ""} onChange={e => setClientForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Phone Number</label>
-                  <input className="inp" placeholder="+92 300 1234567" value={clientForm.phone || ""} onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Email</label>
-                  <input className="inp" placeholder="client@email.com" value={clientForm.email || ""} onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Website</label>
-                  <input className="inp" placeholder="https://clientsite.com" value={clientForm.website || ""} onChange={e => setClientForm(f => ({ ...f, website: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Invoice Number</label>
-                  <input className="inp" placeholder="INV-001" value={clientForm.invoice_number || ""} onChange={e => setClientForm(f => ({ ...f, invoice_number: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Payment Date</label>
-                  <input className="inp" type="date" value={clientForm.payment_date || ""} onChange={e => setClientForm(f => ({ ...f, payment_date: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Renewal Date</label>
-                  <input className="inp" type="date" value={clientForm.renewal_date || ""} onChange={e => setClientForm(f => ({ ...f, renewal_date: e.target.value }))} />
-                </div>
-                <div className="fg">
-                  <label className="lbl">Plan</label>
-                  <select className="inp" value={clientForm.plan || "basic"} onChange={e => setClientForm(f => ({ ...f, plan: e.target.value }))}>
-                    <option value="basic">ðŸ”µ Basic â€” PKR 499/mo</option>
-                    <option value="pro">ðŸš€ Pro â€” PKR 999/mo</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Payment Status */}
-              <div className="fg">
-                <label className="lbl">Payment Status</label>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {["paid", "pending", "overdue"].map(s => (
-                    <button key={s} onClick={() => setClientForm(f => ({ ...f, payment_status: s }))}
-                      style={{ borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontWeight: 700, fontSize: 13, border: "2px solid", borderColor: clientForm.payment_status === s ? (s === "paid" ? "#86efac" : s === "overdue" ? "#fecaca" : "#fde68a") : "#e2e8f0", background: clientForm.payment_status === s ? (s === "paid" ? "#dcfce7" : s === "overdue" ? "#fef2f2" : "#fef9c3") : "#f8fafc", color: clientForm.payment_status === s ? (s === "paid" ? "#16a34a" : s === "overdue" ? "#dc2626" : "#ca8a04") : "#64748b" }}>
-                      {s === "paid" ? "âœ… Paid" : s === "overdue" ? "âš ï¸ Overdue" : "â³ Pending"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Contract */}
-              <div className="fg">
-                <label className="lbl">Contract Details</label>
-                <textarea className="inp" rows={3} placeholder="Contract terms, service details..." value={clientForm.contract_details || ""} onChange={e => setClientForm(f => ({ ...f, contract_details: e.target.value }))} style={{ resize: "vertical" }} />
-              </div>
-
-              {/* Notes */}
-              <div className="fg" style={{ marginBottom: 0 }}>
-                <label className="lbl">Notes</label>
-                <textarea className="inp" rows={2} placeholder="Extra notes..." value={clientForm.notes || ""} onChange={e => setClientForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: "vertical" }} />
-              </div>
-
-              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button className="btn-g" onClick={() => { setCrmView("list"); setEditingClient(null); }}>Cancel</button>
-                <button className="btn-crm" onClick={saveClient} disabled={saving}>{saving ? "Saving..." : editingClient ? "Update Client" : "Save Client"}</button>
-              </div>
-            </div>
-          )}
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
+                          <
